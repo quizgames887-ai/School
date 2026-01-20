@@ -289,6 +289,27 @@ function ClassSessionForm({
     }
   };
 
+  // Get available subjects (curriculum) - filter by teacher's subjects if teacher is selected
+  const teacher = teachers?.find((t: any) => t._id === teacherId);
+  const availableSubjects = useMemo(() => {
+    if (!subjects) return [];
+    if (!teacherId || !teacher) return []; // Return empty when no teacher selected (dropdown is disabled)
+    // Filter subjects based on teacher's assigned subjects
+    return subjects.filter((subject: any) => 
+      teacher.subjects && teacher.subjects.includes(subject._id)
+    );
+  }, [subjects, teacherId, teacher]);
+
+  // Clear curriculum when teacher changes and the selected curriculum is not available for the new teacher
+  useEffect(() => {
+    if (teacherId && curriculumId) {
+      const isCurriculumAvailable = availableSubjects.some((s: any) => s._id === curriculumId);
+      if (!isCurriculumAvailable) {
+        setCurriculumId("");
+      }
+    }
+  }, [teacherId, curriculumId, availableSubjects]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -393,14 +414,26 @@ function ClassSessionForm({
                 onChange={(e) => setCurriculumId(e.target.value)}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
+                disabled={!teacherId}
               >
                 <option value="">Select curriculum</option>
-                {subjects.map((subject: any) => (
-                  <option key={subject._id} value={subject._id}>
-                    {subject.name}
-                  </option>
-                ))}
+                {availableSubjects.length > 0 ? (
+                  availableSubjects.map((subject: any) => (
+                    <option key={subject._id} value={subject._id}>
+                      {subject.name}
+                    </option>
+                  ))
+                ) : subjects === undefined ? (
+                  <option disabled>Loading curriculum...</option>
+                ) : (
+                  <option disabled>No curriculum available{teacherId ? " for this teacher" : " (select a teacher first)"}</option>
+                )}
               </select>
+              {teacherId && availableSubjects.length === 0 && subjects && (
+                <p className="mt-1 text-xs text-amber-600">
+                  Note: This teacher is not assigned to any subjects. Go to Admin → Teachers to assign subjects.
+                </p>
+              )}
             </div>
 
             <div>
