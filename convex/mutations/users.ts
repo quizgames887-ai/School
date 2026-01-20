@@ -18,12 +18,33 @@ export const create = mutation({
       throw new Error("User with this email already exists");
     }
 
-    return await ctx.db.insert("users", {
+    // Create user
+    const userId = await ctx.db.insert("users", {
       email: args.email,
       name: args.name,
       passwordHash: args.passwordHash,
       role: args.role,
     });
+
+    // If user is a teacher, automatically create a teacher profile
+    if (args.role === "teacher") {
+      // Check if teacher profile already exists (shouldn't happen, but safety check)
+      const existingTeacher = await ctx.db
+        .query("teachers")
+        .withIndex("by_user_id", (q) => q.eq("userId", userId))
+        .first();
+
+      if (!existingTeacher) {
+        await ctx.db.insert("teachers", {
+          userId: userId,
+          name: args.name,
+          email: args.email,
+          subjects: [], // Empty subjects array, can be assigned later
+        });
+      }
+    }
+
+    return userId;
   },
 });
 
