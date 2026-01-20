@@ -17,19 +17,9 @@ export default function DashboardPage() {
   const lectures = useQuery(api.queries.lectures.getAll);
   const classSessions = useQuery(api.queries.classSessions.getAll);
 
-  // Debug logging and error detection
+  // Error detection
   useEffect(() => {
     const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-    
-    console.log("Dashboard Debug Info:", {
-      convexUrl: convexUrl ? "Set" : "MISSING",
-      teachers: teachers !== undefined ? `loaded (${teachers?.length || 0} items)` : "loading",
-      classes: classes !== undefined ? `loaded (${classes?.length || 0} items)` : "loading",
-      sections: sections !== undefined ? `loaded (${sections?.length || 0} items)` : "loading",
-      subjects: subjects !== undefined ? `loaded (${subjects?.length || 0} items)` : "loading",
-      lectures: lectures !== undefined ? `loaded (${lectures?.length || 0} items)` : "loading",
-      classSessions: classSessions !== undefined ? `loaded (${classSessions?.length || 0} items)` : "loading",
-    });
 
     // Check if Convex URL is missing
     if (!convexUrl) {

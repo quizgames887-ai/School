@@ -45,32 +45,17 @@ export default function SignupPage() {
         body: JSON.stringify({ email, password, name }),
       });
 
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(auth)/signup/page.tsx:42',message:'After fetch response',data:{ok:res.ok,status:res.status,statusText:res.statusText,hasBody:!!res.body,contentType:res.headers.get('content-type')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-
       if (!res.ok) {
-        // #region agent log
-        const textBeforeJson = await res.clone().text();
-        fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(auth)/signup/page.tsx:49',message:'Before parsing error JSON',data:{responseText:textBeforeJson,textLength:textBeforeJson.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         const error = await res.json();
         throw new Error(error.error || "Signup failed");
       }
 
-      // #region agent log
-      const textBeforeJson = await res.clone().text();
-      fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(auth)/signup/page.tsx:53',message:'Before parsing success JSON',data:{responseText:textBeforeJson,textLength:textBeforeJson.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
-      const data = await res.json();
+      await res.json();
       // Refresh auth context to get the new user
       await refresh();
       router.push("/admin/dashboard");
       router.refresh();
     } catch (err: any) {
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(auth)/signup/page.tsx:58',message:'Error caught in signup',data:{errorMessage:err?.message,errorName:err?.name,errorStack:err?.stack?.substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
       setError(err.message || "Signup failed");
     } finally {
       setIsLoading(false);

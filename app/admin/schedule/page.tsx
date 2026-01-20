@@ -641,26 +641,17 @@ function ReplacementTeacherCard({
       : "skip"
   );
 
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/admin/schedule/page.tsx:637',message:'ReplacementTeacherCard entry',data:{teacherId:replacementTeacher._id,teacherName:replacementTeacher.name,academicYear,periodsCount:periods?.length,replacementLecturesCount:replacementLectures?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
-
   // Get periods where the replacement teacher has lectures (busy periods)
   const busyPeriodIds = useMemo(() => {
     const busy = new Set();
     if (replacementLectures) {
-      const filteredLectures = replacementLectures.filter((l: any) => l.recurring && l.academicYear === academicYear);
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/admin/schedule/page.tsx:648',message:'Filtered replacement lectures',data:{totalLectures:replacementLectures.length,filteredCount:filteredLectures.length,lectures:filteredLectures.map((l:any)=>({id:l._id,periodId:l.periodId,recurring:l.recurring,academicYear:l.academicYear}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-      filteredLectures.forEach((lecture: any) => {
-        if (lecture.periodId) {
-          busy.add(lecture.periodId);
-        }
-      });
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/admin/schedule/page.tsx:655',message:'Busy period IDs collected',data:{busyPeriodIds:Array.from(busy),busyCount:busy.size},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
+      replacementLectures
+        .filter((l: any) => l.recurring && l.academicYear === academicYear)
+        .forEach((lecture: any) => {
+          if (lecture.periodId) {
+            busy.add(lecture.periodId);
+          }
+        });
     }
     return busy;
   }, [replacementLectures, academicYear]);
@@ -668,36 +659,20 @@ function ReplacementTeacherCard({
   // Find available periods (periods where replacement teacher has no lectures)
   const availablePeriods = useMemo(() => {
     if (!periods || periods.length === 0) {
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/admin/schedule/page.tsx:669',message:'Periods array is empty or undefined',data:{periodsIsArray:Array.isArray(periods),periodsLength:periods?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-      // #endregion
       return [];
     }
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/admin/schedule/page.tsx:672',message:'Before filtering available periods',data:{totalPeriods:periods.length,periods:periods.map((p:any)=>({id:p._id,name:p.name,isBreak:p.isBreak,academicYear:p.academicYear,order:p.order})),busyPeriodIds:Array.from(busyPeriodIds),busyPeriodIdsType:typeof busyPeriodIds},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
-    const filtered = periods
+    return periods
       .filter((p: any) => {
         if (!p || !p._id) {
-          // #region agent log
-          fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/admin/schedule/page.tsx:677',message:'Invalid period object',data:{period:p},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-          // #endregion
           return false;
         }
         const isNotBreak = !p.isBreak;
         const periodIdStr = String(p._id);
         const isNotBusy = !busyPeriodIds.has(periodIdStr) && !busyPeriodIds.has(p._id);
         const matchesAcademicYear = p.academicYear === academicYear;
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/admin/schedule/page.tsx:682',message:'Period filter check',data:{periodId:p._id,periodIdStr,periodName:p.name,isNotBreak,isNotBusy,matchesAcademicYear,periodAcademicYear:p.academicYear,requestedAcademicYear:academicYear,isInBusySet:busyPeriodIds.has(p._id),isInBusySetStr:busyPeriodIds.has(periodIdStr),busyPeriodIdsArray:Array.from(busyPeriodIds)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
         return isNotBreak && isNotBusy && matchesAcademicYear;
       })
       .sort((a: any, b: any) => a.order - b.order);
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/admin/schedule/page.tsx:690',message:'Available periods result',data:{availableCount:filtered.length,availablePeriods:filtered.map((p:any)=>({id:p._id,name:p.name,order:p.order}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-    // #endregion
-    return filtered;
   }, [periods, busyPeriodIds, academicYear]);
 
   return (
@@ -728,12 +703,6 @@ function ReplacementTeacherCard({
       {/* Available Periods */}
       <div>
         <p className="text-xs font-medium text-gray-700 mb-1.5">Available Periods:</p>
-        {/* #region agent log */}
-        {(() => {
-          fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/admin/schedule/page.tsx:727',message:'Rendering available periods',data:{teacherName:replacementTeacher.name,availablePeriodsLength:availablePeriods?.length,availablePeriods:availablePeriods?.map((p:any)=>({id:p._id,name:p.name})),isArray:Array.isArray(availablePeriods)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-          return null;
-        })()}
-        {/* #endregion */}
         {availablePeriods && availablePeriods.length > 0 ? (
           <div className="space-y-1">
             <div className="flex flex-wrap gap-1.5">
