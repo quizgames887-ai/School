@@ -222,7 +222,7 @@ function ClassSessionForm({
           time,
           endTime: endTime || undefined,
           academicYear,
-          periodId: periodId || undefined,
+          periodId: (periodId || undefined) as any,
         });
         toast("Class session updated successfully", "success");
       } else {
@@ -234,7 +234,7 @@ function ClassSessionForm({
           time,
           endTime: endTime || undefined,
           academicYear,
-          periodId: periodId || undefined,
+          periodId: (periodId || undefined) as any,
         });
         toast("Class session created successfully", "success");
       }

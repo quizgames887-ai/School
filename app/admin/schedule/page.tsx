@@ -527,7 +527,7 @@ function ScheduleForm({
               </select>
               {(!periods || periods.length === 0) && (
                 <p className="mt-1 text-xs text-amber-600">
-                  Note: Go to Admin → Periods and click "Seed Default" to create periods for {academicYear}.
+                  Note: Go to Admin → Periods and click &quot;Seed Default&quot; to create periods for {academicYear}.
                 </p>
               )}
               {periodId && (
@@ -760,8 +760,8 @@ function TeacherInfoSidebar({
   }, [subjects]);
 
   // Find available replacement teachers with details
-  const teacherSubjectIds = teacher.subjects || [];
   const replacementTeachersData = useMemo(() => {
+    const teacherSubjectIds = teacher.subjects || [];
     return allTeachers
       .filter((t: any) => {
         if (t._id === teacher._id) return false;
@@ -783,7 +783,7 @@ function TeacherInfoSidebar({
           commonSubjectNames,
         };
       });
-  }, [allTeachers, teacher._id, teacherSubjectIds, subjectMap]);
+  }, [allTeachers, teacher._id, teacher.subjects, subjectMap]);
 
 
   return (

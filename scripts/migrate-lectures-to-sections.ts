@@ -58,8 +58,12 @@ async function migrateLectures() {
   for (const lecture of lecturesToMigrate) {
     try {
       // Get the class data
-      const classData = await client.query(api.queries.classes.getById, { 
-        id: lecture.classId 
+      if (!lecture.classId) {
+        console.log(`⚠ Lecture ${lecture._id}: No classId found, skipping`);
+        continue;
+      }
+      const classData = await client.query(api.queries.classes.getById, {
+        id: lecture.classId
       });
       
       if (!classData) {
