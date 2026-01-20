@@ -59,6 +59,12 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
     
+    // Get current user to check role change
+    const currentUser = await ctx.db.get(id);
+    if (!currentUser) {
+      throw new Error("User not found");
+    }
+    
     // Check if email is being changed and if it already exists
     if (updates.email) {
       const existing = await ctx.db
@@ -71,7 +77,26 @@ export const update = mutation({
       }
     }
     
+    // Update user
     await ctx.db.patch(id, updates);
+    
+    // If role is being changed to "teacher", create teacher profile if it doesn't exist
+    if (updates.role === "teacher" && currentUser.role !== "teacher") {
+      const existingTeacher = await ctx.db
+        .query("teachers")
+        .withIndex("by_user_id", (q) => q.eq("userId", id))
+        .first();
+
+      if (!existingTeacher) {
+        await ctx.db.insert("teachers", {
+          userId: id,
+          name: updates.name || currentUser.name,
+          email: updates.email || currentUser.email,
+          subjects: [], // Empty subjects array, can be assigned later
+        });
+      }
+    }
+    
     return id;
   },
 });
