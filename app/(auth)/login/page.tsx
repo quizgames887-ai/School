@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -46,24 +47,22 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-gray-50 p-4">
       <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-xl ring-1 ring-gray-200">
         <div className="text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-            <svg
-              className="h-8 w-8 text-blue-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-              />
-            </svg>
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center">
+            <Image
+              src="/logo.png"
+              alt="Alahed International Schools"
+              width={80}
+              height={80}
+              className="object-contain"
+              priority
+            />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-            Sign in to your account
+          <h2 className="text-2xl font-bold text-gray-900">
+            Alahed International Schools
           </h2>
+          <h3 className="mt-2 text-lg font-medium text-gray-600">
+            Sign in to your account
+          </h3>
           <p className="mt-2 text-center text-sm text-gray-600">
             Don&apos;t have an account?{" "}
             <Link

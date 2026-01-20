@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -74,9 +75,22 @@ export default function SignupPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-md">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-            Create your account
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center">
+            <Image
+              src="/logo.png"
+              alt="Alahed International Schools"
+              width={80}
+              height={80}
+              className="object-contain"
+              priority
+            />
+          </div>
+          <h2 className="text-center text-2xl font-bold text-gray-900">
+            Alahed International Schools
           </h2>
+          <h3 className="mt-2 text-center text-lg font-medium text-gray-600">
+            Create your account
+          </h3>
           <p className="mt-2 text-center text-sm text-gray-600">
             Already have an account?{" "}
             <Link

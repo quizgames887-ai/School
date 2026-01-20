@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { usePathname } from "next/navigation";
 import {
@@ -46,11 +47,25 @@ export function Navbar() {
           <div className="flex items-center">
             <Link
               href="/admin/dashboard"
-              className="flex items-center gap-2 text-xl font-bold text-blue-600 transition-colors hover:text-blue-700"
+              className="flex items-center gap-3 transition-opacity hover:opacity-80"
             >
-              <Calendar className="h-6 w-6" />
-              <span className="hidden sm:inline">School Schedule</span>
-              <span className="sm:hidden">Schedule</span>
+              <div className="relative h-10 w-10 flex-shrink-0">
+                <Image
+                  src="/logo.png"
+                  alt="Alahed International Schools"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-gray-900 leading-tight">
+                  Alahed International Schools
+                </span>
+                <span className="text-xs text-gray-600 leading-tight hidden sm:block">
+                  School Schedule
+                </span>
+              </div>
             </Link>
             <div className="ml-10 hidden space-x-1 md:flex">
               {navItems.map((item) => {

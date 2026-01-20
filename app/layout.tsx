@@ -5,8 +5,8 @@ import { AuthProvider } from "@/lib/auth-context";
 import { ToastContainer } from "@/components/ui/toast";
 
 export const metadata: Metadata = {
-  title: "School Lecture Schedule",
-  description: "Manage school lecture schedules with teachers and classes",
+  title: "Alahed International Schools - Schedule Management",
+  description: "Manage school lecture schedules with teachers and classes for Alahed International Schools",
 };
 
 export default function RootLayout({
