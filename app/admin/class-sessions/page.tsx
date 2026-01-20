@@ -367,25 +367,6 @@ function ClassSessionForm({
 
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Curriculum <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={curriculumId}
-                onChange={(e) => setCurriculumId(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Select curriculum</option>
-                {subjects.map((subject: any) => (
-                  <option key={subject._id} value={subject._id}>
-                    {subject.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
                 Teacher <span className="text-red-500">*</span>
               </label>
               <select
@@ -398,6 +379,25 @@ function ClassSessionForm({
                 {teachers.map((teacher: any) => (
                   <option key={teacher._id} value={teacher._id}>
                     {teacher.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Curriculum <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={curriculumId}
+                onChange={(e) => setCurriculumId(e.target.value)}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Select curriculum</option>
+                {subjects.map((subject: any) => (
+                  <option key={subject._id} value={subject._id}>
+                    {subject.name}
                   </option>
                 ))}
               </select>
