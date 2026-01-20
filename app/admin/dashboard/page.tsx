@@ -141,27 +141,31 @@ export default function DashboardPage() {
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fadeIn">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Dashboard</h1>
         <p className="mt-2 text-gray-600">Overview of your school schedule system</p>
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {stats.map((stat) => {
+        {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.title} className="transition-all hover:shadow-lg">
+            <Card 
+              key={stat.title} 
+              className="card-hover border-gray-200/80 bg-white/80 backdrop-blur-sm shadow-md hover:shadow-xl transition-all duration-300 animate-fadeIn"
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
+                <CardTitle className="text-sm font-semibold text-gray-700">
                   {stat.title}
                 </CardTitle>
-                <div className={`rounded-full p-2 ${stat.bgColor}`}>
+                <div className={`rounded-xl p-2.5 ${stat.bgColor} shadow-sm`}>
                   <Icon className={`h-5 w-5 ${stat.color}`} />
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-gray-900">{stat.value}</div>
-                <CardDescription className="mt-1 text-xs">
+                <div className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">{stat.value}</div>
+                <CardDescription className="mt-1.5 text-xs text-gray-500">
                   {stat.description}
                 </CardDescription>
               </CardContent>

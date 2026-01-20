@@ -42,17 +42,17 @@ export function Navbar() {
   };
 
   return (
-    <nav className="border-b border-gray-200 bg-white shadow-sm">
+    <nav className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/80 backdrop-blur-lg shadow-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
             <Link
               href="/admin/dashboard"
-              className="flex items-center gap-3 transition-opacity hover:opacity-80"
+              className="flex items-center gap-3 transition-all duration-200 hover:opacity-80 hover:scale-105"
             >
               <div className="relative h-10 w-10 flex-shrink-0">
                 {logoError ? (
-                  <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                  <div className="flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30">
                     <span className="text-xs font-bold">AIS</span>
                   </div>
                 ) : (
@@ -60,7 +60,7 @@ export function Navbar() {
                     src="/logo.png"
                     alt="Alahed International Schools"
                     fill
-                    className="object-contain"
+                    className="object-contain rounded-lg"
                     priority
                     unoptimized
                     onError={() => setLogoError(true)}
@@ -68,7 +68,7 @@ export function Navbar() {
                 )}
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-gray-900 leading-tight">
+                <span className="text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent leading-tight">
                   Alahed International Schools
                 </span>
               </div>
@@ -81,13 +81,13 @@ export function Navbar() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
                       isActive
-                        ? "bg-blue-100 text-blue-700"
-                        : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                        ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md shadow-blue-500/30"
+                        : "text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 hover:text-gray-900"
                     }`}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className={`h-4 w-4 ${isActive ? "text-white" : ""}`} />
                     {item.label}
                   </Link>
                 );
@@ -96,7 +96,7 @@ export function Navbar() {
           </div>
           <div className="flex items-center gap-4">
             <div className="hidden items-center gap-3 sm:flex">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-sm font-semibold text-white shadow-md shadow-blue-500/30">
                 {(user.name || user.email || "U").charAt(0).toUpperCase()}
               </div>
               <span className="text-sm font-medium text-gray-700">
@@ -107,14 +107,14 @@ export function Navbar() {
               variant="ghost"
               size="sm"
               onClick={handleLogout}
-              className="hidden sm:flex"
+              className="hidden sm:flex hover:bg-red-50 hover:text-red-600"
             >
               <LogOut className="mr-2 h-4 w-4" />
               Sign Out
             </Button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="rounded-md p-2 text-gray-700 hover:bg-gray-100 md:hidden"
+              className="rounded-lg p-2 text-gray-700 hover:bg-gray-100 transition-colors md:hidden"
             >
               {mobileMenuOpen ? (
                 <X className="h-6 w-6" />

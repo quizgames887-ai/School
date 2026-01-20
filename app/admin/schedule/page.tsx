@@ -55,45 +55,51 @@ export default function SchedulePage() {
   const selectedTeacher = teachers.find((t: any) => t._id === selectedTeacherId);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fadeIn">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Schedule</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Schedule</h1>
           <p className="mt-1 text-sm text-gray-600">Manage and view teacher schedules</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <select
             value={academicYear}
             disabled
-            className="rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 cursor-not-allowed"
+            className="rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 cursor-not-allowed shadow-sm"
           >
             <option value="2025-2026">2025-2026</option>
           </select>
           <Button
             variant={view === "periods" ? "default" : "outline"}
             onClick={() => setView("periods")}
+            className="shadow-sm hover:shadow-md transition-shadow"
           >
             <Grid className="mr-2 h-4 w-4" />
             Period View
           </Button>
-          <Button onClick={() => setShowForm(true)}>Add Lecture</Button>
+          <Button 
+            onClick={() => setShowForm(true)}
+            className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-md shadow-blue-500/30 hover:shadow-lg hover:shadow-blue-500/40 transition-all"
+          >
+            Add Lecture
+          </Button>
         </div>
       </div>
 
       {view === "periods" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6 min-w-0">
-            <Card className="shadow-lg border-gray-200">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 px-4 py-3">
+            <Card className="shadow-xl border-gray-200/80 bg-white/80 backdrop-blur-sm card-hover">
+              <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-b border-gray-200/50 px-4 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 max-w-md">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2.5">
                       Select Teacher
                     </label>
                     <select
                       value={selectedTeacherId}
                       onChange={(e) => setSelectedTeacherId(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium shadow-sm transition-all duration-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:border-gray-400"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium shadow-sm transition-all duration-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 hover:border-blue-400 hover:shadow-md"
                     >
                       <option value="">All Teachers</option>
                       {teachers.map((teacher: any) => (
@@ -104,9 +110,9 @@ export default function SchedulePage() {
                     </select>
                   </div>
                   {selectedTeacherId && selectedTeacher && (
-                    <div className="hidden md:flex items-center gap-3 ml-4">
-                      <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                        <Users className="h-6 w-6 text-blue-600" />
+                    <div className="hidden md:flex items-center gap-3 ml-4 animate-slideIn">
+                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-md shadow-blue-500/30">
+                        <Users className="h-6 w-6 text-white" />
                       </div>
                       <div>
                         <p className="text-xs font-medium text-gray-500">Selected Teacher</p>
@@ -676,8 +682,8 @@ function ReplacementTeacherCard({
   }, [periods, busyPeriodIds, academicYear]);
 
   return (
-    <div className="p-3 rounded-lg border border-gray-200 bg-white hover:border-green-300 hover:shadow-sm transition-all">
-      <div className="mb-2">
+    <div className="p-4 rounded-xl border border-gray-200/80 bg-white/80 backdrop-blur-sm hover:border-green-400 hover:shadow-md hover:shadow-green-500/10 transition-all duration-300 card-hover">
+      <div className="mb-3">
         <p className="text-sm font-semibold text-gray-900">{replacementTeacher.name}</p>
       </div>
 
@@ -812,33 +818,33 @@ function TeacherInfoSidebar({
   return (
     <div className="space-y-4">
       {/* Total Lectures Per Week */}
-      <Card className="p-4">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="rounded-lg bg-blue-100 p-2">
-            <BookOpen className="h-5 w-5 text-blue-600" />
+      <Card className="p-5 border-gray-200/80 bg-gradient-to-br from-white to-blue-50/30 shadow-md hover:shadow-lg transition-all duration-300 card-hover">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 p-2.5 shadow-md shadow-blue-500/30">
+            <BookOpen className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h3 className="text-sm font-medium text-gray-900">Lectures Per Week</h3>
+            <h3 className="text-sm font-semibold text-gray-900">Lectures Per Week</h3>
             <p className="text-xs text-gray-500">Total recurring lectures</p>
           </div>
         </div>
-        <div className="mt-3">
-          <p className="text-3xl font-bold text-gray-900">{totalLecturesPerWeek}</p>
-          <p className="text-xs text-gray-500 mt-1">
+        <div className="mt-4">
+          <p className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{totalLecturesPerWeek}</p>
+          <p className="text-xs text-gray-500 mt-2">
             {totalLecturesPerWeek === 1 ? "lecture" : "lectures"} scheduled weekly
           </p>
         </div>
       </Card>
 
       {/* Available Replacement Teachers */}
-      <Card className="p-4">
+      <Card className="p-5 border-gray-200/80 bg-gradient-to-br from-white to-green-50/30 shadow-md hover:shadow-lg transition-all duration-300 card-hover">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-green-100 p-2">
-              <UserCheck className="h-5 w-5 text-green-600" />
+            <div className="rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 p-2.5 shadow-md shadow-green-500/30">
+              <UserCheck className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h3 className="text-sm font-medium text-gray-900">Available Replacements</h3>
+              <h3 className="text-sm font-semibold text-gray-900">Available Replacements</h3>
               <p className="text-xs text-gray-500">Teachers with same subjects</p>
             </div>
           </div>
@@ -846,16 +852,16 @@ function TeacherInfoSidebar({
         
         {/* Filter by Subject */}
         {teacherSubjects.length > 0 && (
-          <div className="mb-3">
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+          <div className="mb-4">
+            <label className="block text-xs font-semibold text-gray-700 mb-2">
               Filter by Subject
             </label>
             <div className="relative">
-              <Filter className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <select
                 value={filterSubjectId}
                 onChange={(e) => setFilterSubjectId(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-md border border-gray-300 bg-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full pl-10 pr-3 py-2 text-xs rounded-lg border border-gray-300 bg-white shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1 hover:border-gray-400 transition-all"
               >
                 <option value="">All Subjects</option>
                 {teacherSubjects.map((subject: any) => (
