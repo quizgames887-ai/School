@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner, Skeleton } from "@/components/ui/loading";
 import { toast } from "@/components/ui/toast";
-import { Users, Plus, Edit2, Trash2, Mail, UserCheck, UserX, Shield, GraduationCap } from "lucide-react";
+import { Users, Plus, Edit2, Trash2, Mail, UserCheck, UserX, Shield, GraduationCap, Filter } from "lucide-react";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { hashPassword } from "@/lib/password";
 
@@ -17,6 +17,8 @@ export default function UsersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showLinkTeacherForm, setShowLinkTeacherForm] = useState<string | null>(null);
+  const [filterGrade, setFilterGrade] = useState<string>("");
+  const [filterRole, setFilterRole] = useState<string>("");
 
   // Group users by grade - must be called before any conditional returns
   const usersByGrade = useMemo(() => {
@@ -84,7 +86,55 @@ export default function UsersPage() {
     );
   }
 
-  const grades = Object.keys(usersByGrade).sort((a, b) => {
+  // Get unique grades for filter
+  const allGrades = useMemo(() => {
+    const gradeSet = new Set<string>();
+    usersWithGrades.forEach((user: any) => {
+      if (user.role === "admin") {
+        gradeSet.add("Admin");
+      } else if (user.grades && user.grades.length > 0) {
+        user.grades.forEach((grade: string) => gradeSet.add(grade));
+      } else {
+        gradeSet.add("No Grade Assigned");
+      }
+    });
+    return Array.from(gradeSet).sort((a, b) => {
+      if (a === "Admin") return -1;
+      if (b === "Admin") return 1;
+      if (a === "No Grade Assigned") return 1;
+      if (b === "No Grade Assigned") return -1;
+      return a.localeCompare(b);
+    });
+  }, [usersWithGrades]);
+
+  // Filter users by grade and role
+  const filteredUsersByGrade = useMemo(() => {
+    let filtered = { ...usersByGrade };
+    
+    // Filter by grade
+    if (filterGrade) {
+      const filteredGroups: Record<string, any[]> = {};
+      if (filtered[filterGrade]) {
+        filteredGroups[filterGrade] = filtered[filterGrade];
+      }
+      filtered = filteredGroups;
+    }
+    
+    // Filter by role within each grade
+    if (filterRole) {
+      Object.keys(filtered).forEach((grade) => {
+        filtered[grade] = filtered[grade].filter((user: any) => {
+          if (filterRole === "admin") return user.role === "admin";
+          if (filterRole === "teacher") return user.role === "teacher";
+          return true;
+        });
+      });
+    }
+    
+    return filtered;
+  }, [usersByGrade, filterGrade, filterRole]);
+
+  const grades = Object.keys(filteredUsersByGrade).sort((a, b) => {
     // Put "Admin" first, then "No Grade Assigned" last, then sort others
     if (a === "Admin") return -1;
     if (b === "Admin") return 1;
@@ -106,6 +156,59 @@ export default function UsersPage() {
           Create User
         </Button>
       </div>
+
+      {/* Filters */}
+      {allGrades.length > 0 && (
+        <Card className="p-4 bg-gradient-to-r from-gray-50 to-gray-100/50">
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-xs font-semibold text-gray-700 mb-2">
+                <Filter className="inline h-3.5 w-3.5 mr-1" />
+                Filter by Grade
+              </label>
+              <select
+                value={filterGrade}
+                onChange={(e) => setFilterGrade(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:border-gray-400"
+              >
+                <option value="">All Grades</option>
+                {allGrades.map((grade) => (
+                  <option key={grade} value={grade}>
+                    {grade}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-xs font-semibold text-gray-700 mb-2">
+                <Filter className="inline h-3.5 w-3.5 mr-1" />
+                Filter by Role
+              </label>
+              <select
+                value={filterRole}
+                onChange={(e) => setFilterRole(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:border-gray-400"
+              >
+                <option value="">All Roles</option>
+                <option value="admin">Admin</option>
+                <option value="teacher">Teacher</option>
+              </select>
+            </div>
+            {(filterGrade || filterRole) && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFilterGrade("");
+                  setFilterRole("");
+                }}
+                className="h-10"
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
+        </Card>
+      )}
 
       {showForm && (
         <UserForm
@@ -153,35 +256,36 @@ export default function UsersPage() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {grades.map((grade) => (
-            <Card key={grade}>
-              <CardHeader>
-                <CardTitle>{grade}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          User
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Email
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Role
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Teacher Profile
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {usersByGrade[grade].map((user: any) => (
+          {grades.length > 0 ? (
+            grades.map((grade) => (
+              <Card key={grade}>
+                <CardHeader>
+                  <CardTitle>{grade}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            User
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Email
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Role
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Teacher Profile
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredUsersByGrade[grade].map((user: any) => (
                         <tr key={user._id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div className="flex items-center gap-2">
@@ -258,13 +362,20 @@ export default function UsersPage() {
                             </div>
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <p className="text-sm text-gray-500">No users found matching the selected filters.</p>
               </CardContent>
             </Card>
-          ))}
+          )}
         </div>
       )}
     </div>

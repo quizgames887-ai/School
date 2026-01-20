@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner, Skeleton } from "@/components/ui/loading";
 import { toast } from "@/components/ui/toast";
-import { Clock, Plus, Edit2, Trash2, Coffee } from "lucide-react";
+import { Clock, Plus, Edit2, Trash2, Coffee, Filter } from "lucide-react";
 import type { Doc } from "../../../convex/_generated/dataModel";
 
 export default function PeriodsPage() {
@@ -15,6 +15,8 @@ export default function PeriodsPage() {
   const periodsWithGrades = useQuery(api.queries.periods.getAllWithGrades, { academicYear });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [filterGrade, setFilterGrade] = useState<string>("");
+  const [filterType, setFilterType] = useState<string>("");
   const createPeriod = useMutation(api.mutations.periods.create);
 
   // Group periods by grade - must be called before any conditional returns
@@ -82,7 +84,59 @@ export default function PeriodsPage() {
     );
   }
 
-  const grades = Object.keys(periodsByGrade).sort((a, b) => {
+  // Get unique grades for filter
+  const allGrades = useMemo(() => {
+    const gradeSet = new Set<string>();
+    periodsWithGrades.forEach((period: any) => {
+      if (period.academicYear === academicYear) {
+        if (period.grades && period.grades.length > 0) {
+          period.grades.forEach((grade: string) => gradeSet.add(grade));
+        } else {
+          if (period.isBreak) {
+            gradeSet.add("Break Periods");
+          } else {
+            gradeSet.add("All Grades");
+          }
+        }
+      }
+    });
+    return Array.from(gradeSet).sort((a, b) => {
+      if (a === "Break Periods") return 1;
+      if (b === "Break Periods") return -1;
+      if (a === "All Grades") return 1;
+      if (b === "All Grades") return -1;
+      return a.localeCompare(b);
+    });
+  }, [periodsWithGrades, academicYear]);
+
+  // Filter periods by grade and type
+  const filteredPeriodsByGrade = useMemo(() => {
+    let filtered = { ...periodsByGrade };
+    
+    // Filter by grade
+    if (filterGrade) {
+      const filteredGroups: Record<string, any[]> = {};
+      if (filtered[filterGrade]) {
+        filteredGroups[filterGrade] = filtered[filterGrade];
+      }
+      filtered = filteredGroups;
+    }
+    
+    // Filter by type (break/class) within each grade
+    if (filterType) {
+      Object.keys(filtered).forEach((grade) => {
+        filtered[grade] = filtered[grade].filter((period: any) => {
+          if (filterType === "break") return period.isBreak;
+          if (filterType === "class") return !period.isBreak;
+          return true;
+        });
+      });
+    }
+    
+    return filtered;
+  }, [periodsByGrade, filterGrade, filterType]);
+
+  const grades = Object.keys(filteredPeriodsByGrade).sort((a, b) => {
     // Put "Break Periods" and "All Grades" at the end
     if (a === "Break Periods") return 1;
     if (b === "Break Periods") return -1;
@@ -192,7 +246,10 @@ export default function PeriodsPage() {
         <div className="flex flex-wrap gap-2">
           <select
             value={academicYear}
-            onChange={(e) => setAcademicYear(e.target.value)}
+            onChange={(e) => {
+              setAcademicYear(e.target.value);
+              setFilterGrade(""); // Reset grade filter when academic year changes
+            }}
             className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="2025-2026">2025-2026</option>
@@ -209,6 +266,59 @@ export default function PeriodsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Filters */}
+      {allGrades.length > 0 && (
+        <Card className="p-4 bg-gradient-to-r from-gray-50 to-gray-100/50">
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-xs font-semibold text-gray-700 mb-2">
+                <Filter className="inline h-3.5 w-3.5 mr-1" />
+                Filter by Grade
+              </label>
+              <select
+                value={filterGrade}
+                onChange={(e) => setFilterGrade(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:border-gray-400"
+              >
+                <option value="">All Grades</option>
+                {allGrades.map((grade) => (
+                  <option key={grade} value={grade}>
+                    {grade}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-xs font-semibold text-gray-700 mb-2">
+                <Filter className="inline h-3.5 w-3.5 mr-1" />
+                Filter by Type
+              </label>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:border-gray-400"
+              >
+                <option value="">All Types</option>
+                <option value="class">Class Periods</option>
+                <option value="break">Break Periods</option>
+              </select>
+            </div>
+            {(filterGrade || filterType) && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFilterGrade("");
+                  setFilterType("");
+                }}
+                className="h-10"
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
+        </Card>
+      )}
 
       {showForm && (
         <PeriodForm
@@ -236,38 +346,39 @@ export default function PeriodsPage() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {grades.map((grade) => (
-            <Card key={grade}>
-              <CardHeader>
-                <CardTitle>{grade}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Period
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Time
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          English Name
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Order
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Type
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {periodsByGrade[grade].map((period: any) => (
+          {grades.length > 0 ? (
+            grades.map((grade) => (
+              <Card key={grade}>
+                <CardHeader>
+                  <CardTitle>{grade}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Period
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Time
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            English Name
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Order
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Type
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredPeriodsByGrade[grade].map((period: any) => (
                         <tr key={period._id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
@@ -315,13 +426,20 @@ export default function PeriodsPage() {
                             </div>
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <p className="text-sm text-gray-500">No periods found matching the selected filters.</p>
               </CardContent>
             </Card>
-          ))}
+          )}
         </div>
       )}
 

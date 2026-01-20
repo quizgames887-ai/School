@@ -6,13 +6,18 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner, Skeleton } from "@/components/ui/loading";
-import { Calendar, Plus, Edit2, Trash2, Clock } from "lucide-react";
+import { Calendar, Plus, Edit2, Trash2, Clock, Filter } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 
 export default function ClassSessionsPage() {
   const classSessions = useQuery(api.queries.classSessions.getAll);
+  const teachers = useQuery(api.queries.teachers.getAll);
+  const subjects = useQuery(api.queries.subjects.getAll);
   const [showForm, setShowForm] = useState(false);
   const [editingSession, setEditingSession] = useState<string | null>(null);
+  const [filterGrade, setFilterGrade] = useState<string>("");
+  const [filterTeacher, setFilterTeacher] = useState<string>("");
+  const [filterCurriculum, setFilterCurriculum] = useState<string>("");
 
   const deleteSession = useMutation(api.mutations.classSessions.deleteClassSession);
 
@@ -20,8 +25,23 @@ export default function ClassSessionsPage() {
   const sessionsByGrade = useMemo(() => {
     if (!classSessions || classSessions instanceof Error) return {};
     
+    // Apply filters first
+    let filteredSessions = classSessions;
+    
+    if (filterGrade) {
+      filteredSessions = filteredSessions.filter((s: any) => s.sectionGrade === filterGrade);
+    }
+    
+    if (filterTeacher) {
+      filteredSessions = filteredSessions.filter((s: any) => s.teacherId === filterTeacher);
+    }
+    
+    if (filterCurriculum) {
+      filteredSessions = filteredSessions.filter((s: any) => s.curriculumId === filterCurriculum);
+    }
+    
     const grouped: Record<string, any[]> = {};
-    classSessions.forEach((session: any) => {
+    filteredSessions.forEach((session: any) => {
       const grade = session.sectionGrade || "Unknown";
       if (!grouped[grade]) {
         grouped[grade] = [];
@@ -39,6 +59,16 @@ export default function ClassSessionsPage() {
     });
     
     return grouped;
+  }, [classSessions, filterGrade, filterTeacher, filterCurriculum]);
+
+  // Get unique values for filters
+  const allGrades = useMemo(() => {
+    if (!classSessions) return [];
+    const gradeSet = new Set<string>();
+    classSessions.forEach((session: any) => {
+      if (session.sectionGrade) gradeSet.add(session.sectionGrade);
+    });
+    return Array.from(gradeSet).sort();
   }, [classSessions]);
 
   const handleDelete = async (sessionId: string) => {
@@ -89,6 +119,87 @@ export default function ClassSessionsPage() {
         </Button>
       </div>
 
+      {/* Filters */}
+      {(allGrades.length > 0 || teachers?.length > 0 || subjects?.length > 0) && (
+        <Card className="p-4 bg-gradient-to-r from-gray-50 to-gray-100/50">
+          <div className="flex flex-wrap gap-4 items-end">
+            {allGrades.length > 0 && (
+              <div className="flex-1 min-w-[180px]">
+                <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  <Filter className="inline h-3.5 w-3.5 mr-1" />
+                  Filter by Grade
+                </label>
+                <select
+                  value={filterGrade}
+                  onChange={(e) => setFilterGrade(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:border-gray-400"
+                >
+                  <option value="">All Grades</option>
+                  {allGrades.map((grade) => (
+                    <option key={grade} value={grade}>
+                      {grade}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {teachers && teachers.length > 0 && (
+              <div className="flex-1 min-w-[180px]">
+                <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  <Filter className="inline h-3.5 w-3.5 mr-1" />
+                  Filter by Teacher
+                </label>
+                <select
+                  value={filterTeacher}
+                  onChange={(e) => setFilterTeacher(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:border-gray-400"
+                >
+                  <option value="">All Teachers</option>
+                  {teachers.map((teacher: any) => (
+                    <option key={teacher._id} value={teacher._id}>
+                      {teacher.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {subjects && subjects.length > 0 && (
+              <div className="flex-1 min-w-[180px]">
+                <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  <Filter className="inline h-3.5 w-3.5 mr-1" />
+                  Filter by Curriculum
+                </label>
+                <select
+                  value={filterCurriculum}
+                  onChange={(e) => setFilterCurriculum(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:border-gray-400"
+                >
+                  <option value="">All Curriculums</option>
+                  {subjects.map((subject: any) => (
+                    <option key={subject._id} value={subject._id}>
+                      {subject.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {(filterGrade || filterTeacher || filterCurriculum) && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFilterGrade("");
+                  setFilterTeacher("");
+                  setFilterCurriculum("");
+                }}
+                className="h-10"
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
+        </Card>
+      )}
+
       {showForm && (
         <ClassSessionForm
           sessionId={editingSession}
@@ -119,43 +230,44 @@ export default function ClassSessionsPage() {
         </Card>
       ) : (
         <div className="space-y-8">
-          {grades.map((grade) => (
-            <Card key={grade} className="overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b">
-                <CardTitle className="text-xl font-bold text-gray-900">
-                  {grade}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                          Curriculum
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                          Section
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                          Teacher
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                          Date
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                          Time
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                          Period
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {sessionsByGrade[grade].map((session: any) => (
+          {grades.length > 0 ? (
+            grades.map((grade) => (
+              <Card key={grade} className="overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b">
+                  <CardTitle className="text-xl font-bold text-gray-900">
+                    {grade}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Curriculum
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Section
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Teacher
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Date
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Time
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Period
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {sessionsByGrade[grade].map((session: any) => (
                         <tr key={session._id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div className="flex items-center gap-2">
@@ -218,13 +330,20 @@ export default function ClassSessionsPage() {
                             </div>
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <p className="text-sm text-gray-500">No class sessions found matching the selected filters.</p>
               </CardContent>
             </Card>
-          ))}
+          )}
         </div>
       )}
     </div>
