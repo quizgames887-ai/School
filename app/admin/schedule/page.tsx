@@ -8,7 +8,7 @@ import { Calendar } from "@/components/Calendar";
 import { Card } from "@/components/ui/card";
 import { TeacherScheduleView } from "@/components/TeacherScheduleView";
 import { LoadingSpinner, Skeleton } from "@/components/ui/loading";
-import { Users, Calendar as CalendarIcon, Grid, BookOpen, UserCheck, Clock } from "lucide-react";
+import { Users, Calendar as CalendarIcon, Grid, BookOpen, UserCheck, Clock, Filter } from "lucide-react";
 import type { Id } from "../../../convex/_generated/dataModel";
 
 export default function SchedulePage() {
@@ -746,6 +746,8 @@ function TeacherInfoSidebar({
   periods: any[];
   subjects: any[];
 }) {
+  const [filterSubjectId, setFilterSubjectId] = useState<string>("");
+
   // Calculate total lectures per week (only recurring lectures)
   const weeklyLectures = teacherLectures.filter((lecture) => lecture.recurring && lecture.academicYear === academicYear);
   const totalLecturesPerWeek = weeklyLectures.length;
@@ -758,6 +760,17 @@ function TeacherInfoSidebar({
     });
     return map;
   }, [subjects]);
+
+  // Get teacher's subjects for filter dropdown
+  const teacherSubjects = useMemo(() => {
+    const teacherSubjectIds = teacher.subjects || [];
+    return teacherSubjectIds
+      .map((id: any) => {
+        const subject = subjects.find((s: any) => s._id === id);
+        return subject ? { id: subject._id, name: subject.name } : null;
+      })
+      .filter(Boolean);
+  }, [teacher.subjects, subjects]);
 
   // Find available replacement teachers with details
   const replacementTeachersData = useMemo(() => {
@@ -785,6 +798,16 @@ function TeacherInfoSidebar({
       });
   }, [allTeachers, teacher._id, teacher.subjects, subjectMap]);
 
+  // Filter replacement teachers by selected subject
+  const filteredReplacementTeachers = useMemo(() => {
+    if (!filterSubjectId) {
+      return replacementTeachersData;
+    }
+    return replacementTeachersData.filter((rt: any) =>
+      rt.commonSubjectIds.includes(filterSubjectId)
+    );
+  }, [replacementTeachersData, filterSubjectId]);
+
 
   return (
     <div className="space-y-4">
@@ -809,18 +832,45 @@ function TeacherInfoSidebar({
 
       {/* Available Replacement Teachers */}
       <Card className="p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="rounded-lg bg-green-100 p-2">
-            <UserCheck className="h-5 w-5 text-green-600" />
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-gray-900">Available Replacements</h3>
-            <p className="text-xs text-gray-500">Teachers with same subjects</p>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-green-100 p-2">
+              <UserCheck className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-gray-900">Available Replacements</h3>
+              <p className="text-xs text-gray-500">Teachers with same subjects</p>
+            </div>
           </div>
         </div>
-        {replacementTeachersData.length > 0 ? (
+        
+        {/* Filter by Subject */}
+        {teacherSubjects.length > 0 && (
+          <div className="mb-3">
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              Filter by Subject
+            </label>
+            <div className="relative">
+              <Filter className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+              <select
+                value={filterSubjectId}
+                onChange={(e) => setFilterSubjectId(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-md border border-gray-300 bg-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">All Subjects</option>
+                {teacherSubjects.map((subject: any) => (
+                  <option key={subject.id} value={subject.id}>
+                    {subject.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
+        {filteredReplacementTeachers.length > 0 ? (
           <div className="space-y-3">
-            {replacementTeachersData.map((rt: any) => (
+            {filteredReplacementTeachers.map((rt: any) => (
               <ReplacementTeacherCard
                 key={rt._id}
                 replacementTeacher={rt}
@@ -831,9 +881,15 @@ function TeacherInfoSidebar({
           </div>
         ) : (
           <div className="text-center py-4">
-            <p className="text-sm text-gray-500">No replacement teachers available</p>
+            <p className="text-sm text-gray-500">
+              {filterSubjectId
+                ? "No replacement teachers available for selected subject"
+                : "No replacement teachers available"}
+            </p>
             <p className="text-xs text-gray-400 mt-1">
-              No other teachers share the same subjects
+              {filterSubjectId
+                ? "Try selecting a different subject or clear the filter"
+                : "No other teachers share the same subjects"}
             </p>
           </div>
         )}
