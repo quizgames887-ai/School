@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner, Skeleton } from "@/components/ui/loading";
@@ -12,13 +12,55 @@ import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { hashPassword } from "@/lib/password";
 
 export default function UsersPage() {
-  const users = useQuery(api.queries.users.getAll);
+  const usersWithGrades = useQuery(api.queries.users.getAllWithGrades, { academicYear: "2025-2026" });
   const subjects = useQuery(api.queries.subjects.getAll);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showLinkTeacherForm, setShowLinkTeacherForm] = useState<string | null>(null);
 
-  if (!users || !subjects) {
+  // Group users by grade - must be called before any conditional returns
+  const usersByGrade = useMemo(() => {
+    if (!usersWithGrades || usersWithGrades instanceof Error) return {};
+    
+    const grouped: Record<string, any[]> = {};
+    
+    usersWithGrades.forEach((user: any) => {
+      // Admin users go to "Admin" group
+      if (user.role === "admin") {
+        if (!grouped["Admin"]) {
+          grouped["Admin"] = [];
+        }
+        grouped["Admin"].push(user);
+      } else if (user.grades && user.grades.length > 0) {
+        // Teachers with grades go to each grade group
+        user.grades.forEach((grade: string) => {
+          if (!grouped[grade]) {
+            grouped[grade] = [];
+          }
+          // Only add if not already in this grade group (avoid duplicates)
+          if (!grouped[grade].find((u: any) => u._id === user._id)) {
+            grouped[grade].push(user);
+          }
+        });
+      } else {
+        // Teachers with no grades go to "No Grade Assigned"
+        const noGradeKey = "No Grade Assigned";
+        if (!grouped[noGradeKey]) {
+          grouped[noGradeKey] = [];
+        }
+        grouped[noGradeKey].push(user);
+      }
+    });
+    
+    // Sort users within each group by name
+    Object.keys(grouped).forEach((grade) => {
+      grouped[grade].sort((a, b) => a.name.localeCompare(b.name));
+    });
+    
+    return grouped;
+  }, [usersWithGrades]);
+
+  if (!usersWithGrades || !subjects) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -41,6 +83,16 @@ export default function UsersPage() {
       </div>
     );
   }
+
+  const grades = Object.keys(usersByGrade).sort((a, b) => {
+    // Put "Admin" first, then "No Grade Assigned" last, then sort others
+    if (a === "Admin") return -1;
+    if (b === "Admin") return 1;
+    if (a === "No Grade Assigned") return 1;
+    if (b === "No Grade Assigned") return -1;
+    return a.localeCompare(b);
+  });
+  const totalUsers = usersWithGrades.length;
 
   return (
     <div className="space-y-6">
@@ -85,7 +137,7 @@ export default function UsersPage() {
         />
       )}
 
-      {users.length === 0 ? (
+      {totalUsers === 0 ? (
         <Card className="py-12">
           <CardContent className="flex flex-col items-center justify-center text-center">
             <Users className="h-12 w-12 text-gray-400" />
@@ -100,78 +152,115 @@ export default function UsersPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {users.map((user: any) => (
-            <Card
-              key={user._id}
-              className="transition-all hover:shadow-lg hover:shadow-gray-200"
-            >
+        <div className="space-y-6">
+          {grades.map((grade) => (
+            <Card key={grade}>
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="flex items-center gap-2">
-                      {user.role === "admin" ? (
-                        <Shield className="h-5 w-5 text-purple-500" />
-                      ) : (
-                        <Users className="h-5 w-5 text-blue-500" />
-                      )}
-                      <span className="text-lg">{user.name}</span>
-                    </CardTitle>
-                    {user.role === "admin" && (
-                      <span className="mt-1 inline-block rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800">
-                        Admin
-                      </span>
-                    )}
-                  </div>
-                </div>
+                <CardTitle>{grade}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                    <span className="text-gray-600">{user.email}</span>
-                  </div>
-                  
-                  {user.teacherProfile ? (
-                    <div className="rounded-lg border border-green-200 bg-green-50 p-3">
-                      <div className="flex items-center gap-2 text-sm font-medium text-green-800">
-                        <UserCheck className="h-4 w-4" />
-                        <span>Linked to Teacher Profile</span>
-                      </div>
-                      <p className="mt-1 text-xs text-green-700">
-                        {user.teacherProfile.subjects.length} subject(s) assigned
-                      </p>
-                    </div>
-                  ) : user.role === "teacher" ? (
-                    <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3">
-                      <div className="flex items-center gap-2 text-sm font-medium text-yellow-800">
-                        <UserX className="h-4 w-4" />
-                        <span>No Teacher Profile</span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="mt-2 w-full"
-                        onClick={() => setShowLinkTeacherForm(user._id)}
-                      >
-                        <GraduationCap className="mr-2 h-3.5 w-3.5" />
-                        Link Teacher Profile
-                      </Button>
-                    </div>
-                  ) : null}
-                </div>
-                
-                <div className="mt-4 flex gap-2 border-t border-gray-100 pt-4">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setEditingId(user._id)}
-                    className="flex-1"
-                  >
-                    <Edit2 className="mr-1.5 h-3.5 w-3.5" />
-                    Edit
-                  </Button>
-                  <DeleteUserButton userId={user._id} userName={user.name} />
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          User
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Email
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Role
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Teacher Profile
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {usersByGrade[grade].map((user: any) => (
+                        <tr key={user._id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              {user.role === "admin" ? (
+                                <Shield className="h-5 w-5 text-purple-500" />
+                              ) : (
+                                <Users className="h-5 w-5 text-blue-500" />
+                              )}
+                              <div className="text-sm font-medium text-gray-900">
+                                {user.name}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Mail className="h-4 w-4" />
+                              <span>{user.email}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {user.role === "admin" ? (
+                              <span className="inline-block rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800">
+                                Admin
+                              </span>
+                            ) : (
+                              <span className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                                Teacher
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {user.teacherProfile ? (
+                              <div className="rounded-lg border border-green-200 bg-green-50 p-2">
+                                <div className="flex items-center gap-2 text-xs font-medium text-green-800">
+                                  <UserCheck className="h-3.5 w-3.5" />
+                                  <span>Linked</span>
+                                </div>
+                                <p className="mt-0.5 text-xs text-green-700">
+                                  {user.teacherProfile.subjects.length} subject(s)
+                                </p>
+                              </div>
+                            ) : user.role === "teacher" ? (
+                              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-2">
+                                <div className="flex items-center gap-2 text-xs font-medium text-yellow-800">
+                                  <UserX className="h-3.5 w-3.5" />
+                                  <span>Not Linked</span>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="mt-1 h-7 text-xs"
+                                  onClick={() => setShowLinkTeacherForm(user._id)}
+                                >
+                                  <GraduationCap className="mr-1 h-3 w-3" />
+                                  Link
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-500">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingId(user._id)}
+                                className="h-8 px-3"
+                              >
+                                <Edit2 className="mr-1.5 h-3.5 w-3.5" />
+                                Edit
+                              </Button>
+                              <DeleteUserButton userId={user._id} userName={user.name} />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>
