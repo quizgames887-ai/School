@@ -77,26 +77,22 @@ export default function SignupPage() {
       <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-md">
         <div>
           <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center">
-            <Image
-              src="/logo.png"
-              alt="Alahed International Schools"
-              width={80}
-              height={80}
-              className="object-contain"
-              priority
-              unoptimized
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const parent = target.parentElement;
-                if (parent && !parent.querySelector('.logo-fallback')) {
-                  const fallback = document.createElement('div');
-                  fallback.className = 'logo-fallback flex items-center justify-center h-full w-full bg-gradient-to-br from-blue-500 to-blue-600 rounded-full text-white font-bold text-lg';
-                  fallback.textContent = 'AIS';
-                  parent.appendChild(fallback);
-                }
-              }}
-            />
+            {logoError ? (
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                <span className="text-2xl font-bold">AIS</span>
+              </div>
+            ) : (
+              <Image
+                src="/logo.png"
+                alt="Alahed International Schools"
+                width={80}
+                height={80}
+                className="object-contain"
+                priority
+                unoptimized
+                onError={() => setLogoError(true)}
+              />
+            )}
           </div>
           <h2 className="text-center text-2xl font-bold text-gray-900">
             Alahed International Schools
