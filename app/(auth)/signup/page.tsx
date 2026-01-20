@@ -90,17 +90,7 @@ export default function SignupPage() {
                 className="object-contain"
                 priority
                 unoptimized
-                onError={(e) => {
-                  // #region agent log
-                  fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(auth)/signup/page.tsx:97',message:'Signup page Image onError fired',data:{src:'/logo.png',errorType:e?.type,currentTarget:e?.currentTarget?.src},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-                  // #endregion
-                  setLogoError(true);
-                }}
-                onLoad={() => {
-                  // #region agent log
-                  fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(auth)/signup/page.tsx:105',message:'Signup page Image onLoad fired - logo loaded successfully',data:{src:'/logo.png'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-                  // #endregion
-                }}
+                onError={() => setLogoError(true)}
               />
             )}
           </div>

@@ -122,6 +122,12 @@ School/
 npx convex deploy
 ```
 
+**Production Deployment:**
+- Production URL: `https://good-robin-36.convex.cloud`
+- To connect your app to production, set `NEXT_PUBLIC_CONVEX_URL=https://good-robin-36.convex.cloud` in your environment variables
+- For Vercel: Add this as an environment variable in your Vercel project settings
+- For local production testing: Update `.env.local` with the production URL
+
 ## Usage
 
 1. **Login**: Use Clerk authentication to log in
