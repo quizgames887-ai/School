@@ -46,18 +46,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
+    // Trim email and password to ensure consistency
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+    
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email: trimmedEmail, password: trimmedPassword }),
     });
 
     if (!res.ok) {
-      const error = await res.json();
+      let error;
+      try {
+        error = await res.json();
+      } catch (e) {
+        error = { error: `HTTP ${res.status}: ${res.statusText}` };
+      }
       throw new Error(error.error || "Login failed");
     }
 
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+    } catch (e) {
+      throw new Error("Invalid response from server");
+    }
+    
+    if (!data.user) {
+      throw new Error("No user data received from server");
+    }
+    
     setUser(data.user);
     router.push("/admin/dashboard");
     router.refresh();

@@ -29,8 +29,12 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
+      // Clear password field after successful login
+      setPassword("");
     } catch (err: any) {
       setError(err.message || "Login failed");
+      // Clear password field after failed login for security
+      setPassword("");
     } finally {
       setIsLoading(false);
     }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
-import { createSession } from "@/lib/session";
+import { createSession, deleteSession } from "@/lib/session";
 import { hashPassword } from "@/lib/password";
 
 if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
@@ -16,7 +16,10 @@ const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const body = await request.json();
+    // Trim email and password to handle whitespace issues
+    const email = body.email?.trim();
+    const password = body.password?.trim();
 
     if (!email || !password) {
       return NextResponse.json(
@@ -39,6 +42,7 @@ export async function POST(request: NextRequest) {
 
     // Verify password
     const passwordHash = hashPassword(password);
+    
     if (user.passwordHash !== passwordHash) {
       return NextResponse.json(
         { error: "Invalid email or password" },
@@ -46,6 +50,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Clear any existing session first to avoid conflicts
+    await deleteSession();
+    
     // Create session
     await createSession(user._id);
 

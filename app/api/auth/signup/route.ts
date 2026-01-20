@@ -16,7 +16,11 @@ const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, name } = await request.json();
+    const body = await request.json();
+    // Trim email, password, and name to handle whitespace issues
+    const email = body.email?.trim();
+    const password = body.password?.trim();
+    const name = body.name?.trim();
 
     if (!email || !password || !name) {
       return NextResponse.json(
