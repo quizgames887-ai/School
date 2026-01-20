@@ -166,7 +166,7 @@ function ClassSessionForm({
   const [date, setDate] = useState("");
   const [time, setTime] = useState("08:00");
   const [endTime, setEndTime] = useState("08:50");
-  const [academicYear, setAcademicYear] = useState("2024-2025");
+  const [academicYear] = useState("2025-2026"); // Read-only, always 2025-2026
   const [periodId, setPeriodId] = useState("");
 
   const createSession = useMutation(api.mutations.classSessions.create);
@@ -191,7 +191,7 @@ function ClassSessionForm({
       setDate(existingSession.date);
       setTime(existingSession.time);
       setEndTime(existingSession.endTime || "");
-      setAcademicYear(existingSession.academicYear);
+      // Academic year is always 2025-2026, don't override from existing session
       setPeriodId(existingSession.periodId || "");
     } else {
       // Set default date to today
@@ -401,9 +401,9 @@ function ClassSessionForm({
               <input
                 type="text"
                 value={academicYear}
-                onChange={(e) => setAcademicYear(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., 2024-2025"
+                readOnly
+                className="mt-1 block w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 shadow-sm cursor-not-allowed"
+                placeholder="2025-2026"
                 required
               />
             </div>
