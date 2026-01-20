@@ -753,6 +753,10 @@ function TeacherInfoSidebar({
   subjects: any[];
 }) {
   const [filterSubjectId, setFilterSubjectId] = useState<string>("");
+  const [viewMode, setViewMode] = useState<"subject" | "period">("subject");
+
+  // Query all lectures for the academic year to find available teachers by period
+  const allLectures = useQuery(api.queries.lectures.getAll);
 
   // Calculate total lectures per week (only recurring lectures)
   const weeklyLectures = teacherLectures.filter((lecture) => lecture.recurring && lecture.academicYear === academicYear);
@@ -814,6 +818,62 @@ function TeacherInfoSidebar({
     );
   }, [replacementTeachersData, filterSubjectId]);
 
+  // Get periods where the selected teacher has lectures
+  const teacherPeriods = useMemo(() => {
+    const periodIds = new Set<string>();
+    weeklyLectures.forEach((lecture: any) => {
+      if (lecture.periodId) {
+        periodIds.add(lecture.periodId);
+      }
+    });
+    return Array.from(periodIds)
+      .map((periodId) => periods.find((p: any) => p._id === periodId))
+      .filter(Boolean)
+      .sort((a: any, b: any) => a.order - b.order);
+  }, [weeklyLectures, periods]);
+
+  // Find teachers available by period (regardless of subject)
+  const teachersByPeriod = useMemo(() => {
+    if (viewMode !== "period" || !allLectures) return {};
+    
+    const result: Record<string, any[]> = {};
+    
+    teacherPeriods.forEach((period: any) => {
+      if (!period || period.isBreak) return;
+      
+      // Get all lectures for this period from all teachers
+      const allPeriodLectures = (allLectures || []).filter((lecture: any) => {
+        if (!lecture.periodId) return false;
+        return lecture.periodId === period._id && 
+               lecture.recurring && 
+               lecture.academicYear === academicYear;
+      });
+      
+      if (allPeriodLectures.length === 0) {
+        // If no one has lectures in this period, all teachers are available
+        result[period._id] = allTeachers.filter((t: any) => t._id !== teacher._id);
+        return;
+      }
+      
+      // Get all teacher IDs who have lectures during this period
+      const busyTeacherIds = new Set<string>();
+      allPeriodLectures.forEach((lecture: any) => {
+        busyTeacherIds.add(lecture.teacherId);
+      });
+      
+      // Find teachers who are NOT busy during this period
+      const availableTeachers = allTeachers.filter((t: any) => {
+        return t._id !== teacher._id && !busyTeacherIds.has(t._id);
+      });
+      
+      if (availableTeachers.length > 0) {
+        result[period._id] = availableTeachers;
+      }
+    });
+    
+    return result;
+  }, [viewMode, teacherPeriods, allLectures, academicYear, allTeachers, teacher._id]);
+
 
   return (
     <div className="space-y-4">
@@ -845,59 +905,143 @@ function TeacherInfoSidebar({
             </div>
             <div>
               <h3 className="text-sm font-semibold text-gray-900">Available Replacements</h3>
-              <p className="text-xs text-gray-500">Teachers with same subjects</p>
+              <p className="text-xs text-gray-500">
+                {viewMode === "subject" ? "Teachers with same subjects" : "Teachers available by period"}
+              </p>
             </div>
           </div>
         </div>
         
-        {/* Filter by Subject */}
-        {teacherSubjects.length > 0 && (
-          <div className="mb-4">
-            <label className="block text-xs font-semibold text-gray-700 mb-2">
-              Filter by Subject
-            </label>
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <select
-                value={filterSubjectId}
-                onChange={(e) => setFilterSubjectId(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 text-xs rounded-lg border border-gray-300 bg-white shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1 hover:border-gray-400 transition-all"
-              >
-                <option value="">All Subjects</option>
-                {teacherSubjects.map((subject: any) => (
-                  <option key={subject.id} value={subject.id}>
-                    {subject.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+        {/* View Mode Toggle */}
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-gray-700 mb-2">
+            View Mode
+          </label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setViewMode("subject");
+                setFilterSubjectId("");
+              }}
+              className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-all ${
+                viewMode === "subject"
+                  ? "bg-blue-500 text-white border-blue-500 shadow-sm"
+                  : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
+              }`}
+            >
+              By Subject
+            </button>
+            <button
+              onClick={() => {
+                setViewMode("period");
+                setFilterSubjectId("");
+              }}
+              className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-all ${
+                viewMode === "period"
+                  ? "bg-blue-500 text-white border-blue-500 shadow-sm"
+                  : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
+              }`}
+            >
+              By Period
+            </button>
           </div>
-        )}
+        </div>
 
-        {filteredReplacementTeachers.length > 0 ? (
-          <div className="space-y-3">
-            {filteredReplacementTeachers.map((rt: any) => (
-              <ReplacementTeacherCard
-                key={rt._id}
-                replacementTeacher={rt}
-                periods={periods}
-                academicYear={academicYear}
-              />
-            ))}
-          </div>
+        {viewMode === "subject" ? (
+          <>
+            {/* Filter by Subject */}
+            {teacherSubjects.length > 0 && (
+              <div className="mb-4">
+                <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  Filter by Subject
+                </label>
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <select
+                    value={filterSubjectId}
+                    onChange={(e) => setFilterSubjectId(e.target.value)}
+                    className="w-full pl-10 pr-3 py-2 text-xs rounded-lg border border-gray-300 bg-white shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1 hover:border-gray-400 transition-all"
+                  >
+                    <option value="">All Subjects</option>
+                    {teacherSubjects.map((subject: any) => (
+                      <option key={subject.id} value={subject.id}>
+                        {subject.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {filteredReplacementTeachers.length > 0 ? (
+              <div className="space-y-3">
+                {filteredReplacementTeachers.map((rt: any) => (
+                  <ReplacementTeacherCard
+                    key={rt._id}
+                    replacementTeacher={rt}
+                    periods={periods}
+                    academicYear={academicYear}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-gray-500">
+                  {filterSubjectId
+                    ? "No replacement teachers available for selected subject"
+                    : "No replacement teachers available"}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {filterSubjectId
+                    ? "Try selecting a different subject or clear the filter"
+                    : "No other teachers share the same subjects"}
+                </p>
+              </div>
+            )}
+          </>
         ) : (
-          <div className="text-center py-4">
-            <p className="text-sm text-gray-500">
-              {filterSubjectId
-                ? "No replacement teachers available for selected subject"
-                : "No replacement teachers available"}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">
-              {filterSubjectId
-                ? "Try selecting a different subject or clear the filter"
-                : "No other teachers share the same subjects"}
-            </p>
-          </div>
+          <>
+            {/* Teachers Available by Period */}
+            {Object.keys(teachersByPeriod).length > 0 ? (
+              <div className="space-y-4">
+                {teacherPeriods
+                  .filter((period: any) => teachersByPeriod[period._id]?.length > 0)
+                  .map((period: any) => (
+                    <div key={period._id} className="p-3 rounded-lg border border-gray-200 bg-white/80">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Clock className="h-4 w-4 text-blue-600" />
+                        <p className="text-sm font-semibold text-gray-900">{period.name}</p>
+                        <span className="text-xs text-gray-500">
+                          ({period.startTime} - {period.endTime})
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {teachersByPeriod[period._id].map((teacher: any) => (
+                          <div
+                            key={teacher._id}
+                            className="p-2 rounded-md bg-green-50 border border-green-200"
+                          >
+                            <p className="text-sm font-medium text-gray-900">{teacher.name}</p>
+                            <p className="text-xs text-gray-600">{teacher.email}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-gray-500">
+                  {allLectures === undefined
+                    ? "Loading available teachers..."
+                    : "No teachers available during selected teacher's periods"}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  All teachers may be busy during these periods
+                </p>
+              </div>
+            )}
+          </>
         )}
       </Card>
     </div>
