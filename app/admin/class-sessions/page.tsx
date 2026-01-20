@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner, Skeleton } from "@/components/ui/loading";
@@ -41,6 +41,31 @@ export default function ClassSessionsPage() {
     );
   }
 
+  // Group sessions by grade
+  const sessionsByGrade = useMemo(() => {
+    if (!classSessions) return {};
+    
+    const grouped: Record<string, any[]> = {};
+    classSessions.forEach((session: any) => {
+      const grade = session.sectionGrade || "Unknown";
+      if (!grouped[grade]) {
+        grouped[grade] = [];
+      }
+      grouped[grade].push(session);
+    });
+    
+    // Sort sessions within each grade by date and time
+    Object.keys(grouped).forEach((grade) => {
+      grouped[grade].sort((a, b) => {
+        const dateCompare = new Date(a.date).getTime() - new Date(b.date).getTime();
+        if (dateCompare !== 0) return dateCompare;
+        return a.time.localeCompare(b.time);
+      });
+    });
+    
+    return grouped;
+  }, [classSessions]);
+
   if (!classSessions) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -48,6 +73,8 @@ export default function ClassSessionsPage() {
       </div>
     );
   }
+
+  const grades = Object.keys(sessionsByGrade).sort();
 
   return (
     <div className="space-y-6">
@@ -91,56 +118,109 @@ export default function ClassSessionsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {classSessions.map((session: any) => (
-            <Card key={session._id} className="transition-all hover:shadow-lg">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="flex items-center gap-2">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-                        <Calendar className="h-5 w-5" />
-                      </div>
-                      <span className="text-lg">{session.curriculumName}</span>
-                    </CardTitle>
-                  </div>
-                </div>
+        <div className="space-y-8">
+          {grades.map((grade) => (
+            <Card key={grade} className="overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b">
+                <CardTitle className="text-xl font-bold text-gray-900">
+                  {grade}
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="text-sm text-gray-600">
-                    <p><strong>Section:</strong> {session.sectionName} ({session.sectionGrade})</p>
-                    <p><strong>Teacher:</strong> {session.teacherName}</p>
-                    <p><strong>Date:</strong> {new Date(session.date).toLocaleDateString()}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Clock className="h-4 w-4" />
-                      <span>{session.time} - {session.endTime || "N/A"}</span>
-                    </div>
-                    {session.periodName && (
-                      <p className="text-xs text-gray-500">Period: {session.periodName}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-4 flex gap-2 border-t border-gray-100 pt-4">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setEditingSession(session._id);
-                      setShowForm(true);
-                    }}
-                    className="flex-1"
-                  >
-                    <Edit2 className="mr-1.5 h-3.5 w-3.5" />
-                    Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDelete(session._id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          Curriculum
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          Section
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          Teacher
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          Date
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          Time
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          Period
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {sessionsByGrade[grade].map((session: any) => (
+                        <tr key={session._id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                                <Calendar className="h-4 w-4" />
+                              </div>
+                              <span className="text-sm font-medium text-gray-900">
+                                {session.curriculumName}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className="text-sm text-gray-600">
+                              {session.sectionName}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className="text-sm text-gray-600">
+                              {session.teacherName}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className="text-sm text-gray-600">
+                              {new Date(session.date).toLocaleDateString()}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-gray-400" />
+                              <span className="text-sm text-gray-600">
+                                {session.time} - {session.endTime || "N/A"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className="text-sm text-gray-600">
+                              {session.periodName || "-"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingSession(session._id);
+                                  setShowForm(true);
+                                }}
+                              >
+                                <Edit2 className="mr-1.5 h-3.5 w-3.5" />
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDelete(session._id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>
