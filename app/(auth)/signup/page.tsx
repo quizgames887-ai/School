@@ -16,6 +16,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -83,6 +84,18 @@ export default function SignupPage() {
               height={80}
               className="object-contain"
               priority
+              unoptimized
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const parent = target.parentElement;
+                if (parent && !parent.querySelector('.logo-fallback')) {
+                  const fallback = document.createElement('div');
+                  fallback.className = 'logo-fallback flex items-center justify-center h-full w-full bg-gradient-to-br from-blue-500 to-blue-600 rounded-full text-white font-bold text-lg';
+                  fallback.textContent = 'AIS';
+                  parent.appendChild(fallback);
+                }
+              }}
             />
           </div>
           <h2 className="text-center text-2xl font-bold text-gray-900">

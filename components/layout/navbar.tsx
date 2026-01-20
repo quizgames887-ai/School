@@ -22,6 +22,7 @@ export function Navbar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   if (!user) return null;
 
@@ -50,13 +51,21 @@ export function Navbar() {
               className="flex items-center gap-3 transition-opacity hover:opacity-80"
             >
               <div className="relative h-10 w-10 flex-shrink-0">
-                <Image
-                  src="/logo.png"
-                  alt="Alahed International Schools"
-                  fill
-                  className="object-contain"
-                  priority
-                />
+                {logoError ? (
+                  <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                    <span className="text-xs font-bold">AIS</span>
+                  </div>
+                ) : (
+                  <Image
+                    src="/logo.png"
+                    alt="Alahed International Schools"
+                    fill
+                    className="object-contain"
+                    priority
+                    unoptimized
+                    onError={() => setLogoError(true)}
+                  />
+                )}
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-bold text-gray-900 leading-tight">

@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -48,14 +49,22 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-xl ring-1 ring-gray-200">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center">
-            <Image
-              src="/logo.png"
-              alt="Alahed International Schools"
-              width={80}
-              height={80}
-              className="object-contain"
-              priority
-            />
+            {logoError ? (
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                <span className="text-2xl font-bold">AIS</span>
+              </div>
+            ) : (
+              <Image
+                src="/logo.png"
+                alt="Alahed International Schools"
+                width={80}
+                height={80}
+                className="object-contain"
+                priority
+                unoptimized
+                onError={() => setLogoError(true)}
+              />
+            )}
           </div>
           <h2 className="text-2xl font-bold text-gray-900">
             Alahed International Schools
