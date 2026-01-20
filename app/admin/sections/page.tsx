@@ -38,27 +38,9 @@ export default function SectionsPage() {
     return grouped;
   }, [sections]);
 
-  const handleDelete = async (sectionId: string) => {
-    if (!confirm("Are you sure you want to delete this section? This action cannot be undone.")) {
-      return;
-    }
-    try {
-      await deleteSection({ id: sectionId as any });
-    } catch (error: any) {
-      alert(`Error: ${error.message || error}`);
-    }
-  };
-
-  if (!sections) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
-  // Get unique grades and academic years for filters
+  // Get unique grades and academic years for filters - must be called before any conditional returns
   const allGrades = useMemo(() => {
+    if (!sections) return [];
     const gradeSet = new Set<string>();
     sections.forEach((section: any) => {
       if (section.grade) gradeSet.add(section.grade);
@@ -67,6 +49,7 @@ export default function SectionsPage() {
   }, [sections]);
 
   const allAcademicYears = useMemo(() => {
+    if (!sections) return [];
     const yearSet = new Set<string>();
     sections.forEach((section: any) => {
       if (section.academicYear) yearSet.add(section.academicYear);
@@ -74,7 +57,7 @@ export default function SectionsPage() {
     return Array.from(yearSet).sort().reverse();
   }, [sections]);
 
-  // Filter sections by grade and academic year
+  // Filter sections by grade and academic year - must be called before any conditional returns
   const filteredSectionsByGrade = useMemo(() => {
     let filtered = { ...sectionsByGrade };
     
@@ -98,6 +81,25 @@ export default function SectionsPage() {
     
     return filtered;
   }, [sectionsByGrade, filterGrade, filterAcademicYear]);
+
+  const handleDelete = async (sectionId: string) => {
+    if (!confirm("Are you sure you want to delete this section? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      await deleteSection({ id: sectionId as any });
+    } catch (error: any) {
+      alert(`Error: ${error.message || error}`);
+    }
+  };
+
+  if (!sections) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   const grades = Object.keys(filteredSectionsByGrade).sort();
 

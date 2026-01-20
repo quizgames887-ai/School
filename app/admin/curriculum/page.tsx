@@ -56,18 +56,18 @@ export default function CurriculumPage() {
     }
   };
 
-  if (!curriculum) {
-    return <div>Loading...</div>;
-  }
-
-  // Filter curriculum by subject name
+  // Filter curriculum by subject name - must be called before any conditional returns
   const filteredCurriculum = useMemo(() => {
-    if (!filterSubject) return curriculum;
+    if (!curriculum || !filterSubject) return curriculum || [];
     const searchTerm = filterSubject.toLowerCase();
     return curriculum.filter((subject: any) =>
       subject.name.toLowerCase().includes(searchTerm)
     );
   }, [curriculum, filterSubject]);
+
+  if (!curriculum) {
+    return <div>Loading...</div>;
+  }
 
   const selectedSubjectData = filteredCurriculum.find((s: any) => s._id === selectedSubject);
   const selectedUnitData = selectedSubjectData?.units.find(

@@ -60,32 +60,9 @@ export default function PeriodsPage() {
     return grouped;
   }, [periodsWithGrades, academicYear]);
 
-  if (!periodsWithGrades) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-9 w-48" />
-          <Skeleton className="h-10 w-32" />
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-6 w-32" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="mt-2 h-4 w-16" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Get unique grades for filter
+  // Get unique grades for filter - must be called before any conditional returns
   const allGrades = useMemo(() => {
+    if (!periodsWithGrades) return [];
     const gradeSet = new Set<string>();
     periodsWithGrades.forEach((period: any) => {
       if (period.academicYear === academicYear) {
@@ -109,7 +86,7 @@ export default function PeriodsPage() {
     });
   }, [periodsWithGrades, academicYear]);
 
-  // Filter periods by grade and type
+  // Filter periods by grade and type - must be called before any conditional returns
   const filteredPeriodsByGrade = useMemo(() => {
     let filtered = { ...periodsByGrade };
     
@@ -135,6 +112,30 @@ export default function PeriodsPage() {
     
     return filtered;
   }, [periodsByGrade, filterGrade, filterType]);
+
+  if (!periodsWithGrades) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-9 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="mt-2 h-4 w-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const grades = Object.keys(filteredPeriodsByGrade).sort((a, b) => {
     // Put "Break Periods" and "All Grades" at the end
