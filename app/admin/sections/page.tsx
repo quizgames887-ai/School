@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pencil, Trash2, Users } from "lucide-react";
@@ -14,6 +14,27 @@ export default function SectionsPage() {
   const [editingSection, setEditingSection] = useState<string | null>(null);
 
   const deleteSection = useMutation(api.mutations.sections.deleteSection);
+
+  // Group sections by grade - must be called before any conditional returns
+  const sectionsByGrade = useMemo(() => {
+    if (!sections || sections instanceof Error) return {};
+    
+    const grouped: Record<string, any[]> = {};
+    sections.forEach((section: any) => {
+      const grade = section.grade || "Unknown";
+      if (!grouped[grade]) {
+        grouped[grade] = [];
+      }
+      grouped[grade].push(section);
+    });
+    
+    // Sort sections within each grade by name
+    Object.keys(grouped).forEach((grade) => {
+      grouped[grade].sort((a, b) => a.name.localeCompare(b.name));
+    });
+    
+    return grouped;
+  }, [sections]);
 
   const handleDelete = async (sectionId: string) => {
     if (!confirm("Are you sure you want to delete this section? This action cannot be undone.")) {
@@ -33,6 +54,8 @@ export default function SectionsPage() {
       </div>
     );
   }
+
+  const grades = Object.keys(sectionsByGrade).sort();
 
   return (
     <div className="space-y-6">
@@ -58,43 +81,77 @@ export default function SectionsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {sections.map((section: any) => (
-            <Card key={section._id}>
+        <div className="space-y-6">
+          {grades.map((grade) => (
+            <Card key={grade}>
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <CardTitle>{section.name}</CardTitle>
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setEditingSection(section._id);
-                        setShowForm(true);
-                      }}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDelete(section._id)}
-                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <CardTitle>{grade}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600">Grade: {section.grade}</p>
-                <p className="text-sm text-gray-600">
-                  Students: {section.numberOfStudents}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Academic Year: {section.academicYear}
-                </p>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Section
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Students
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Academic Year
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {sectionsByGrade[grade].map((section: any) => (
+                        <tr key={section._id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">
+                              {section.name}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="text-sm text-gray-600">
+                              {section.numberOfStudents}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="text-sm text-gray-600">
+                              {section.academicYear}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setEditingSection(section._id);
+                                  setShowForm(true);
+                                }}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDelete(section._id)}
+                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -130,7 +187,7 @@ function SectionForm({
   const [name, setName] = useState("");
   const [grade, setGrade] = useState("");
   const [numberOfStudents, setNumberOfStudents] = useState(0);
-  const [academicYear, setAcademicYear] = useState("2024-2025");
+  const [academicYear, setAcademicYear] = useState("2025-2026");
   
   const createSection = useMutation(api.mutations.sections.create);
   const updateSection = useMutation(api.mutations.sections.update);
@@ -148,7 +205,7 @@ function SectionForm({
       setName("");
       setGrade("");
       setNumberOfStudents(0);
-      setAcademicYear("2024-2025");
+      setAcademicYear("2025-2026");
     }
   }, [existingSection]);
 
