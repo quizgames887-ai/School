@@ -16,6 +16,31 @@ export default function ClassSessionsPage() {
 
   const deleteSession = useMutation(api.mutations.classSessions.deleteClassSession);
 
+  // Group sessions by grade - must be called before any conditional returns
+  const sessionsByGrade = useMemo(() => {
+    if (!classSessions || classSessions instanceof Error) return {};
+    
+    const grouped: Record<string, any[]> = {};
+    classSessions.forEach((session: any) => {
+      const grade = session.sectionGrade || "Unknown";
+      if (!grouped[grade]) {
+        grouped[grade] = [];
+      }
+      grouped[grade].push(session);
+    });
+    
+    // Sort sessions within each grade by date and time
+    Object.keys(grouped).forEach((grade) => {
+      grouped[grade].sort((a, b) => {
+        const dateCompare = new Date(a.date).getTime() - new Date(b.date).getTime();
+        if (dateCompare !== 0) return dateCompare;
+        return a.time.localeCompare(b.time);
+      });
+    });
+    
+    return grouped;
+  }, [classSessions]);
+
   const handleDelete = async (sessionId: string) => {
     if (!confirm("Are you sure you want to delete this class session? This action cannot be undone.")) {
       return;
@@ -40,31 +65,6 @@ export default function ClassSessionsPage() {
       </div>
     );
   }
-
-  // Group sessions by grade
-  const sessionsByGrade = useMemo(() => {
-    if (!classSessions) return {};
-    
-    const grouped: Record<string, any[]> = {};
-    classSessions.forEach((session: any) => {
-      const grade = session.sectionGrade || "Unknown";
-      if (!grouped[grade]) {
-        grouped[grade] = [];
-      }
-      grouped[grade].push(session);
-    });
-    
-    // Sort sessions within each grade by date and time
-    Object.keys(grouped).forEach((grade) => {
-      grouped[grade].sort((a, b) => {
-        const dateCompare = new Date(a.date).getTime() - new Date(b.date).getTime();
-        if (dateCompare !== 0) return dateCompare;
-        return a.time.localeCompare(b.time);
-      });
-    });
-    
-    return grouped;
-  }, [classSessions]);
 
   if (!classSessions) {
     return (
