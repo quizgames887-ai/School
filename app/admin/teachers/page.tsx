@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner, Skeleton } from "@/components/ui/loading";
@@ -11,12 +11,48 @@ import { Users, Plus, Edit2, Trash2, Mail } from "lucide-react";
 import type { Doc } from "../../../convex/_generated/dataModel";
 
 export default function TeachersPage() {
-  const teachers = useQuery(api.queries.teachers.getAll);
+  const teachersWithGrades = useQuery(api.queries.teachers.getAllWithGrades, { academicYear: "2025-2026" });
   const subjects = useQuery(api.queries.subjects.getAll);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  if (!teachers || !subjects) {
+  // Group teachers by grade - must be called before any conditional returns
+  const teachersByGrade = useMemo(() => {
+    if (!teachersWithGrades || teachersWithGrades instanceof Error) return {};
+    
+    const grouped: Record<string, any[]> = {};
+    
+    teachersWithGrades.forEach((teacher: any) => {
+      // If teacher has grades, add to each grade group
+      if (teacher.grades && teacher.grades.length > 0) {
+        teacher.grades.forEach((grade: string) => {
+          if (!grouped[grade]) {
+            grouped[grade] = [];
+          }
+          // Only add if not already in this grade group (avoid duplicates)
+          if (!grouped[grade].find((t: any) => t._id === teacher._id)) {
+            grouped[grade].push(teacher);
+          }
+        });
+      } else {
+        // Teachers with no grades go to "No Grade Assigned"
+        const noGradeKey = "No Grade Assigned";
+        if (!grouped[noGradeKey]) {
+          grouped[noGradeKey] = [];
+        }
+        grouped[noGradeKey].push(teacher);
+      }
+    });
+    
+    // Sort teachers within each grade by name
+    Object.keys(grouped).forEach((grade) => {
+      grouped[grade].sort((a, b) => a.name.localeCompare(b.name));
+    });
+    
+    return grouped;
+  }, [teachersWithGrades]);
+
+  if (!teachersWithGrades || !subjects) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -39,6 +75,9 @@ export default function TeachersPage() {
       </div>
     );
   }
+
+  const grades = Object.keys(teachersByGrade).sort();
+  const totalTeachers = teachersWithGrades.length;
 
   return (
     <div className="space-y-6">
@@ -63,7 +102,7 @@ export default function TeachersPage() {
         />
       )}
 
-      {teachers.length === 0 ? (
+      {totalTeachers === 0 ? (
         <Card className="py-12">
           <CardContent className="flex flex-col items-center justify-center text-center">
             <Users className="h-12 w-12 text-gray-400" />
@@ -78,62 +117,87 @@ export default function TeachersPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {teachers.map((teacher: Doc<"teachers">) => (
-            <Card
-              key={teacher._id}
-              className="transition-all hover:shadow-lg hover:shadow-gray-200"
-            >
+        <div className="space-y-6">
+          {grades.map((grade) => (
+            <Card key={grade}>
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="flex items-center gap-2">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-                        <Users className="h-5 w-5" />
-                      </div>
-                      <span className="text-lg">{teacher.name}</span>
-                    </CardTitle>
-                  </div>
-                </div>
+                <CardTitle>{grade}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Mail className="h-4 w-4" />
-                    <span>{teacher.email}</span>
-                  </div>
-                  <div>
-                    <p className="mb-2 text-sm font-medium text-gray-700">Subjects:</p>
-                    {teacher.subjects.length === 0 ? (
-                      <p className="text-xs text-gray-500">No subjects assigned</p>
-                    ) : (
-                      <div className="flex flex-wrap gap-1.5">
-                        {teacher.subjects.map((subjectId: any) => {
-                          const subject = subjects.find((s: Doc<"subjects">) => s._id === subjectId);
-                          return (
-                            <span
-                              key={subjectId}
-                              className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-800"
-                            >
-                              {subject?.name || "Unknown"}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-4 flex gap-2 border-t border-gray-100 pt-4">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setEditingId(teacher._id)}
-                    className="flex-1"
-                  >
-                    <Edit2 className="mr-1.5 h-3.5 w-3.5" />
-                    Edit
-                  </Button>
-                  <DeleteTeacherButton teacherId={teacher._id} />
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Teacher
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Email
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Subjects
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {teachersByGrade[grade].map((teacher: any) => (
+                        <tr key={teacher._id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                                <Users className="h-4 w-4" />
+                              </div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {teacher.name}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Mail className="h-4 w-4" />
+                              <span>{teacher.email}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap gap-1.5">
+                              {teacher.subjects.length === 0 ? (
+                                <span className="text-xs text-gray-500">No subjects assigned</span>
+                              ) : (
+                                teacher.subjects.map((subjectId: any) => {
+                                  const subject = subjects.find((s: Doc<"subjects">) => s._id === subjectId);
+                                  return (
+                                    <span
+                                      key={subjectId}
+                                      className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-800"
+                                    >
+                                      {subject?.name || "Unknown"}
+                                    </span>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingId(teacher._id)}
+                                className="h-8 px-3"
+                              >
+                                <Edit2 className="mr-1.5 h-3.5 w-3.5" />
+                                Edit
+                              </Button>
+                              <DeleteTeacherButton teacherId={teacher._id} />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>

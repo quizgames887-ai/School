@@ -34,3 +34,63 @@ export const getByEmail = query({
       .first();
   },
 });
+
+export const getAllWithGrades = query({
+  args: { academicYear: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const teachers = await ctx.db.query("teachers").collect();
+    const allLectures = await ctx.db.query("lectures").collect();
+    
+    // Filter lectures by academic year if provided
+    const filteredLectures = args.academicYear
+      ? allLectures.filter((l) => l.academicYear === args.academicYear)
+      : allLectures;
+    
+    // Get all sections for grade lookup
+    const allSections = await ctx.db.query("sections").collect();
+    
+    // For each teacher, find unique grades they teach
+    const teachersWithGrades = await Promise.all(
+      teachers.map(async (teacher) => {
+        const teacherLectures = filteredLectures.filter(
+          (l) => l.teacherId === teacher._id
+        );
+        
+        const grades = new Set<string>();
+        
+        for (const lecture of teacherLectures) {
+          let sectionData: any = null;
+          
+          if (lecture.sectionId) {
+            sectionData = allSections.find((s) => s._id === lecture.sectionId);
+          } else if (lecture.classId) {
+            // For backward compatibility with classId
+            const classData = await ctx.db.get(lecture.classId);
+            if (classData) {
+              // Find matching sections by grade
+              const matchingSections = allSections.filter((s) => {
+                const classGradeNorm = classData.grade.trim().toLowerCase();
+                const sectionGradeNorm = s.grade.trim().toLowerCase();
+                return classGradeNorm === sectionGradeNorm || 
+                       classGradeNorm.includes(sectionGradeNorm) ||
+                       sectionGradeNorm.includes(classGradeNorm);
+              });
+              sectionData = matchingSections.length > 0 ? matchingSections[0] : null;
+            }
+          }
+          
+          if (sectionData?.grade) {
+            grades.add(sectionData.grade);
+          }
+        }
+        
+        return {
+          ...teacher,
+          grades: Array.from(grades),
+        };
+      })
+    );
+    
+    return teachersWithGrades;
+  },
+});
