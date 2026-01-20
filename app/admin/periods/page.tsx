@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner, Skeleton } from "@/components/ui/loading";
@@ -11,13 +11,54 @@ import { Clock, Plus, Edit2, Trash2, Coffee } from "lucide-react";
 import type { Doc } from "../../../convex/_generated/dataModel";
 
 export default function PeriodsPage() {
-  const periods = useQuery(api.queries.periods.getAll);
+  const [academicYear, setAcademicYear] = useState("2025-2026");
+  const periodsWithGrades = useQuery(api.queries.periods.getAllWithGrades, { academicYear });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [academicYear, setAcademicYear] = useState("2024-2025");
   const createPeriod = useMutation(api.mutations.periods.create);
 
-  if (!periods) {
+  // Group periods by grade - must be called before any conditional returns
+  const periodsByGrade = useMemo(() => {
+    if (!periodsWithGrades || periodsWithGrades instanceof Error) return {};
+    
+    // Filter periods by academic year
+    const filteredPeriods = periodsWithGrades.filter(
+      (p: any) => p.academicYear === academicYear
+    );
+    
+    const grouped: Record<string, any[]> = {};
+    
+    filteredPeriods.forEach((period: any) => {
+      // If period has grades, add to each grade group
+      if (period.grades && period.grades.length > 0) {
+        period.grades.forEach((grade: string) => {
+          if (!grouped[grade]) {
+            grouped[grade] = [];
+          }
+          // Only add if not already in this grade group (avoid duplicates)
+          if (!grouped[grade].find((p: any) => p._id === period._id)) {
+            grouped[grade].push(period);
+          }
+        });
+      } else {
+        // Periods with no grades (or break periods) go to "All Grades" or "Break Periods"
+        const noGradeKey = period.isBreak ? "Break Periods" : "All Grades";
+        if (!grouped[noGradeKey]) {
+          grouped[noGradeKey] = [];
+        }
+        grouped[noGradeKey].push(period);
+      }
+    });
+    
+    // Sort periods within each grade by order
+    Object.keys(grouped).forEach((grade) => {
+      grouped[grade].sort((a, b) => a.order - b.order);
+    });
+    
+    return grouped;
+  }, [periodsWithGrades, academicYear]);
+
+  if (!periodsWithGrades) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -40,6 +81,17 @@ export default function PeriodsPage() {
       </div>
     );
   }
+
+  const grades = Object.keys(periodsByGrade).sort((a, b) => {
+    // Put "Break Periods" and "All Grades" at the end
+    if (a === "Break Periods") return 1;
+    if (b === "Break Periods") return -1;
+    if (a === "All Grades") return 1;
+    if (b === "All Grades") return -1;
+    return a.localeCompare(b);
+  });
+  const filteredPeriods = periodsWithGrades.filter((p: any) => p.academicYear === academicYear);
+  const totalPeriods = filteredPeriods.length;
 
   const handleSeedDefault = async () => {
     if (
@@ -145,8 +197,8 @@ export default function PeriodsPage() {
             onChange={(e) => setAcademicYear(e.target.value)}
             className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="2024-2025">2024-2025</option>
             <option value="2025-2026">2025-2026</option>
+            <option value="2024-2025">2024-2025</option>
             <option value="2023-2024">2023-2024</option>
           </select>
           <Button variant="outline" onClick={handleSeedDefault}>
@@ -170,41 +222,110 @@ export default function PeriodsPage() {
         />
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredPeriods
-          .sort((a: any, b: any) => a.order - b.order)
-          .map((period: any) => (
-            <Card key={period._id}>
+      {totalPeriods === 0 ? (
+        <Card className="py-12">
+          <CardContent className="flex flex-col items-center justify-center text-center">
+            <Clock className="h-12 w-12 text-gray-400" />
+            <h3 className="mt-4 text-lg font-semibold text-gray-900">No periods found</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Get started by creating your first period or seeding default periods.
+            </p>
+            <Button className="mt-6" onClick={() => setShowForm(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Period
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {grades.map((grade) => (
+            <Card key={grade}>
               <CardHeader>
-                <CardTitle>
-                  {period.nameAr || period.name}
-                  {period.isBreak && (
-                    <span className="ml-2 text-sm font-normal text-gray-500">(Break)</span>
-                  )}
-                </CardTitle>
+                <CardTitle>{grade}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600">
-                  {period.startTime} - {period.endTime}
-                </p>
-                {period.nameAr && period.nameAr !== period.name && (
-                  <p className="mt-1 text-sm text-gray-500">{period.name}</p>
-                )}
-                <p className="mt-2 text-xs text-gray-500">Order: {period.order}</p>
-                <div className="mt-4 flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setEditingId(period._id)}
-                  >
-                    Edit
-                  </Button>
-                  <DeletePeriodButton periodId={period._id} />
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Period
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Time
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          English Name
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Order
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Type
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {periodsByGrade[grade].map((period: any) => (
+                        <tr key={period._id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">
+                              {period.nameAr || period.name}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="text-sm text-gray-600">
+                              {period.startTime} - {period.endTime}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="text-sm text-gray-600">
+                              {period.nameAr && period.nameAr !== period.name ? period.name : "-"}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="text-sm text-gray-600">
+                              {period.order}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {period.isBreak ? (
+                              <span className="inline-block rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800">
+                                Break
+                              </span>
+                            ) : (
+                              <span className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                                Class
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingId(period._id)}
+                                className="h-8 px-3"
+                              >
+                                <Edit2 className="mr-1.5 h-3.5 w-3.5" />
+                                Edit
+                              </Button>
+                              <DeletePeriodButton periodId={period._id} />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>
           ))}
-      </div>
+        </div>
+      )}
 
       {editingId && (
         <PeriodForm

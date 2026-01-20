@@ -25,3 +25,64 @@ export const getByAcademicYear = query({
       .then((periods) => periods.sort((a, b) => a.order - b.order));
   },
 });
+
+export const getAllWithGrades = query({
+  args: { academicYear: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const allPeriods = await ctx.db.query("periods").collect();
+    const allLectures = await ctx.db.query("lectures").collect();
+    
+    // Filter lectures by academic year if provided
+    const filteredLectures = args.academicYear
+      ? allLectures.filter((l) => l.academicYear === args.academicYear)
+      : allLectures;
+    
+    // Get all sections for grade lookup
+    const allSections = await ctx.db.query("sections").collect();
+    
+    // For each period, find unique grades that use it
+    const periodsWithGrades = await Promise.all(
+      allPeriods.map(async (period) => {
+        // Find lectures that use this period
+        const periodLectures = filteredLectures.filter(
+          (l) => l.periodId === period._id
+        );
+        
+        const grades = new Set<string>();
+        
+        for (const lecture of periodLectures) {
+          let sectionData: any = null;
+          
+          if (lecture.sectionId) {
+            sectionData = allSections.find((s) => s._id === lecture.sectionId);
+          } else if (lecture.classId) {
+            // For backward compatibility with classId
+            const classData = await ctx.db.get(lecture.classId);
+            if (classData) {
+              // Find matching sections by grade
+              const matchingSections = allSections.filter((s) => {
+                const classGradeNorm = classData.grade.trim().toLowerCase();
+                const sectionGradeNorm = s.grade.trim().toLowerCase();
+                return classGradeNorm === sectionGradeNorm || 
+                       classGradeNorm.includes(sectionGradeNorm) ||
+                       sectionGradeNorm.includes(classGradeNorm);
+              });
+              sectionData = matchingSections.length > 0 ? matchingSections[0] : null;
+            }
+          }
+          
+          if (sectionData?.grade) {
+            grades.add(sectionData.grade);
+          }
+        }
+        
+        return {
+          ...period,
+          grades: Array.from(grades),
+        };
+      })
+    );
+    
+    return periodsWithGrades;
+  },
+});
