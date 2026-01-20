@@ -120,7 +120,7 @@ export default function ClassSessionsPage() {
       </div>
 
       {/* Filters */}
-      {(allGrades.length > 0 || teachers?.length > 0 || subjects?.length > 0) && (
+      {(allGrades.length > 0 || (teachers && teachers.length > 0) || (subjects && subjects.length > 0)) && (
         <Card className="p-4 bg-gradient-to-r from-gray-50 to-gray-100/50">
           <div className="flex flex-wrap gap-4 items-end">
             {allGrades.length > 0 && (
