@@ -63,7 +63,18 @@ export function Navbar() {
                     className="object-contain"
                     priority
                     unoptimized
-                    onError={() => setLogoError(true)}
+                    onError={(e) => {
+                      // #region agent log
+                      fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'components/layout/navbar.tsx:66',message:'Image onError fired',data:{src:'/logo.png',errorType:e?.type,currentTarget:e?.currentTarget?.src,attemptedUrl:'http://localhost:3002/logo.png'},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
+                      // #endregion
+                      console.warn('Logo image failed to load. Please ensure logo.png exists in the public/ folder.');
+                      setLogoError(true);
+                    }}
+                    onLoad={() => {
+                      // #region agent log
+                      fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'components/layout/navbar.tsx:75',message:'Image onLoad fired - logo loaded successfully',data:{src:'/logo.png'},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
+                      // #endregion
+                    }}
                   />
                 )}
               </div>
