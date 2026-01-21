@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       console.log("[LOGIN] Password mismatch for user:", email);
       console.log("[LOGIN] Stored hash:", user.passwordHash);
       console.log("[LOGIN] Computed hash:", passwordHash);
-      console.log("[LOGIN] Password bytes:", Array.from(password).map(c => c.charCodeAt(0)));
+      console.log("[LOGIN] Password bytes:", password.split("").map((c: string) => c.charCodeAt(0)));
       return NextResponse.json(
         { error: `Password mismatch. Stored: "${user.passwordHash}" (len ${user.passwordHash?.length}), Computed: "${passwordHash}" (len ${passwordHash.length})` },
         { status: 401 }
