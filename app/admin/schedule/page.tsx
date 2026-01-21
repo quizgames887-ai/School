@@ -754,6 +754,7 @@ function TeacherInfoSidebar({
 }) {
   const [filterSubjectId, setFilterSubjectId] = useState<string>("");
   const [viewMode, setViewMode] = useState<"subject" | "period">("subject");
+  const [filterDay, setFilterDay] = useState<number | "">("");
 
   // Query all lectures for the academic year to find available teachers by period
   const allLectures = useQuery(api.queries.lectures.getAll);
@@ -818,10 +819,28 @@ function TeacherInfoSidebar({
     );
   }, [replacementTeachersData, filterSubjectId]);
 
-  // Get periods where the selected teacher has lectures
+  // Get days where the selected teacher has lectures
+  const teacherDays = useMemo(() => {
+    const daySet = new Set<number>();
+    weeklyLectures.forEach((lecture: any) => {
+      if (lecture.dayOfWeek !== undefined) {
+        daySet.add(lecture.dayOfWeek);
+      }
+    });
+    return Array.from(daySet).sort();
+  }, [weeklyLectures]);
+
+  // Day names mapping (0 = Sunday, 1 = Monday, etc.)
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+  // Get periods where the selected teacher has lectures (optionally filtered by day)
   const teacherPeriods = useMemo(() => {
     const periodIds = new Set<string>();
     weeklyLectures.forEach((lecture: any) => {
+      // Filter by day if day filter is set
+      if (filterDay !== "" && lecture.dayOfWeek !== filterDay) {
+        return;
+      }
       if (lecture.periodId) {
         periodIds.add(lecture.periodId);
       }
@@ -830,7 +849,7 @@ function TeacherInfoSidebar({
       .map((periodId) => periods.find((p: any) => p._id === periodId))
       .filter(Boolean)
       .sort((a: any, b: any) => a.order - b.order);
-  }, [weeklyLectures, periods]);
+  }, [weeklyLectures, periods, filterDay]);
 
   // Find teachers available by period (regardless of subject)
   const teachersByPeriod = useMemo(() => {
@@ -842,26 +861,30 @@ function TeacherInfoSidebar({
       if (!period || period.isBreak) return;
       
       // Get all lectures for this period from all teachers
+      // If day filter is set, only check lectures on that day
       const allPeriodLectures = (allLectures || []).filter((lecture: any) => {
         if (!lecture.periodId) return false;
-        return lecture.periodId === period._id && 
-               lecture.recurring && 
-               lecture.academicYear === academicYear;
+        const periodMatches = lecture.periodId === period._id;
+        const recurringMatches = lecture.recurring;
+        const yearMatches = lecture.academicYear === academicYear;
+        const dayMatches = filterDay === "" || lecture.dayOfWeek === filterDay;
+        
+        return periodMatches && recurringMatches && yearMatches && dayMatches;
       });
       
       if (allPeriodLectures.length === 0) {
-        // If no one has lectures in this period, all teachers are available
+        // If no one has lectures in this period (on the selected day), all teachers are available
         result[period._id] = allTeachers.filter((t: any) => t._id !== teacher._id);
         return;
       }
       
-      // Get all teacher IDs who have lectures during this period
+      // Get all teacher IDs who have lectures during this period (on the selected day)
       const busyTeacherIds = new Set<string>();
       allPeriodLectures.forEach((lecture: any) => {
         busyTeacherIds.add(lecture.teacherId);
       });
       
-      // Find teachers who are NOT busy during this period
+      // Find teachers who are NOT busy during this period (on the selected day)
       const availableTeachers = allTeachers.filter((t: any) => {
         return t._id !== teacher._id && !busyTeacherIds.has(t._id);
       });
@@ -872,7 +895,7 @@ function TeacherInfoSidebar({
     });
     
     return result;
-  }, [viewMode, teacherPeriods, allLectures, academicYear, allTeachers, teacher._id]);
+  }, [viewMode, teacherPeriods, allLectures, academicYear, allTeachers, teacher._id, filterDay]);
 
 
   return (
@@ -935,6 +958,7 @@ function TeacherInfoSidebar({
               onClick={() => {
                 setViewMode("period");
                 setFilterSubjectId("");
+                setFilterDay("");
               }}
               className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-all ${
                 viewMode === "period"
@@ -946,6 +970,30 @@ function TeacherInfoSidebar({
             </button>
           </div>
         </div>
+
+        {/* Day Filter (only shown in By Period mode) */}
+        {viewMode === "period" && teacherDays.length > 0 && (
+          <div className="mb-4">
+            <label className="block text-xs font-semibold text-gray-700 mb-2">
+              Filter by Day
+            </label>
+            <div className="relative">
+              <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <select
+                value={filterDay}
+                onChange={(e) => setFilterDay(e.target.value === "" ? "" : parseInt(e.target.value))}
+                className="w-full pl-10 pr-3 py-2 text-xs rounded-lg border border-gray-300 bg-white shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1 hover:border-gray-400 transition-all"
+              >
+                <option value="">All Days</option>
+                {teacherDays.map((day: number) => (
+                  <option key={day} value={day}>
+                    {dayNames[day]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         {viewMode === "subject" ? (
           <>
@@ -1006,38 +1054,61 @@ function TeacherInfoSidebar({
               <div className="space-y-4">
                 {teacherPeriods
                   .filter((period: any) => teachersByPeriod[period._id]?.length > 0)
-                  .map((period: any) => (
-                    <div key={period._id} className="p-3 rounded-lg border border-gray-200 bg-white/80">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Clock className="h-4 w-4 text-blue-600" />
-                        <p className="text-sm font-semibold text-gray-900">{period.name}</p>
-                        <span className="text-xs text-gray-500">
-                          ({period.startTime} - {period.endTime})
-                        </span>
+                  .map((period: any) => {
+                    // Get days for this period from the selected teacher's lectures
+                    const periodDays = weeklyLectures
+                      .filter((lecture: any) => {
+                        if (lecture.periodId !== period._id) return false;
+                        if (filterDay !== "" && lecture.dayOfWeek !== filterDay) return false;
+                        return true;
+                      })
+                      .map((lecture: any) => lecture.dayOfWeek)
+                      .filter((day: number) => day !== undefined)
+                      .sort()
+                      .filter((day: number, index: number, arr: number[]) => arr.indexOf(day) === index); // Remove duplicates
+                    
+                    return (
+                      <div key={period._id} className="p-3 rounded-lg border border-gray-200 bg-white/80">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Clock className="h-4 w-4 text-blue-600" />
+                          <p className="text-sm font-semibold text-gray-900">{period.name}</p>
+                          <span className="text-xs text-gray-500">
+                            ({period.startTime} - {period.endTime})
+                          </span>
+                          {periodDays.length > 0 && (
+                            <span className="text-xs text-blue-600 font-medium">
+                              • {periodDays.map((day: number) => dayNames[day]).join(", ")}
+                            </span>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          {teachersByPeriod[period._id].map((teacher: any) => (
+                            <div
+                              key={teacher._id}
+                              className="p-2 rounded-md bg-green-50 border border-green-200"
+                            >
+                              <p className="text-sm font-medium text-gray-900">{teacher.name}</p>
+                              <p className="text-xs text-gray-600">{teacher.email}</p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        {teachersByPeriod[period._id].map((teacher: any) => (
-                          <div
-                            key={teacher._id}
-                            className="p-2 rounded-md bg-green-50 border border-green-200"
-                          >
-                            <p className="text-sm font-medium text-gray-900">{teacher.name}</p>
-                            <p className="text-xs text-gray-600">{teacher.email}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
               </div>
             ) : (
               <div className="text-center py-4">
                 <p className="text-sm text-gray-500">
                   {allLectures === undefined
                     ? "Loading available teachers..."
+                    : filterDay !== ""
+                    ? `No teachers available during selected teacher's periods on ${dayNames[filterDay]}`
                     : "No teachers available during selected teacher's periods"}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">
-                  All teachers may be busy during these periods
+                  {filterDay !== ""
+                    ? "Try selecting a different day or clear the filter"
+                    : "All teachers may be busy during these periods"}
                 </p>
               </div>
             )}
