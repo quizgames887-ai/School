@@ -423,7 +423,7 @@ function UserForm({
         if (email) updates.email = email;
         if (role) updates.role = role;
         if (password) {
-          updates.passwordHash = hashPassword(password);
+          updates.passwordHash = await hashPassword(password);
         }
         
         await updateUser(updates);
@@ -435,7 +435,7 @@ function UserForm({
           return;
         }
         
-        const passwordHash = hashPassword(password);
+        const passwordHash = await hashPassword(password);
         await createUser({
           name,
           email,
