@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import Link from "next/link";
 
 export default function LoginPage() {
   const { user, login, loading } = useAuth();
@@ -76,15 +75,6 @@ export default function LoginPage() {
           <h3 className="mt-2 text-lg font-semibold text-gray-700">
             Sign in to your account
           </h3>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/signup"
-              className="font-medium text-blue-600 transition-colors hover:text-blue-500"
-            >
-              Sign up
-            </Link>
-          </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
