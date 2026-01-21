@@ -46,10 +46,6 @@ export function Navbar() {
     { href: "/teacher/schedule", label: t("nav.mySchedule", "My Schedule"), icon: Calendar },
   ];
 
-  // Use appropriate nav items based on role
-  const navItems = user.role === "admin" ? adminNavItems : teacherNavItems;
-  const homeHref = user.role === "admin" ? "/admin/dashboard" : "/teacher/schedule";
-
   const handleLogout = async () => {
     await logout();
   };
@@ -86,9 +82,13 @@ export function Navbar() {
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [navItems.length]);
+  }, []);
 
   if (!user) return null;
+
+  // Use appropriate nav items based on role
+  const navItems = user.role === "admin" ? adminNavItems : teacherNavItems;
+  const homeHref = user.role === "admin" ? "/admin/dashboard" : "/teacher/schedule";
 
   return (
     <nav className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/80 backdrop-blur-lg shadow-sm">
