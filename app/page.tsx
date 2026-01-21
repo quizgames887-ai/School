@@ -8,5 +8,11 @@ export default async function Home() {
     redirect("/login");
   }
   
+  // Redirect based on user role
+  if (user.role === "teacher") {
+    redirect("/teacher/schedule");
+  }
+  
+  // Default to admin dashboard for admin users
   redirect("/admin/dashboard");
 }

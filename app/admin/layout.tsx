@@ -13,6 +13,11 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
+  // If user is a teacher (not admin), redirect to teacher schedule
+  if (user.role === "teacher") {
+    redirect("/teacher/schedule");
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />

@@ -26,7 +26,8 @@ export function Navbar() {
 
   if (!user) return null;
 
-  const navItems = [
+  // Define navigation items based on user role
+  const adminNavItems = [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/teachers", label: "Teachers", icon: GraduationCap },
@@ -36,6 +37,14 @@ export function Navbar() {
     { href: "/admin/periods", label: "Periods", icon: Clock },
     { href: "/admin/schedule", label: "Schedule", icon: Calendar },
   ];
+
+  const teacherNavItems = [
+    { href: "/teacher/schedule", label: "My Schedule", icon: Calendar },
+  ];
+
+  // Use appropriate nav items based on role
+  const navItems = user.role === "admin" ? adminNavItems : teacherNavItems;
+  const homeHref = user.role === "admin" ? "/admin/dashboard" : "/teacher/schedule";
 
   const handleLogout = async () => {
     await logout();
@@ -47,7 +56,7 @@ export function Navbar() {
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
             <Link
-              href="/admin/dashboard"
+              href={homeHref}
               className="flex items-center gap-3 transition-all duration-200 hover:opacity-80 hover:scale-105"
             >
               <div className="relative h-10 w-10 flex-shrink-0">
@@ -71,6 +80,9 @@ export function Navbar() {
                 <span className="text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent leading-tight">
                   Alahed International Schools
                 </span>
+                {user.role === "teacher" && (
+                  <span className="text-xs text-gray-500">Teacher Portal</span>
+                )}
               </div>
             </Link>
             <div className="ml-10 hidden space-x-1 md:flex">
@@ -99,9 +111,12 @@ export function Navbar() {
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-sm font-semibold text-white shadow-md shadow-blue-500/30">
                 {(user.name || user.email || "U").charAt(0).toUpperCase()}
               </div>
-              <span className="text-sm font-medium text-gray-700">
-                {user.name || user.email}
-              </span>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-700">
+                  {user.name || user.email}
+                </span>
+                <span className="text-xs text-gray-500 capitalize">{user.role}</span>
+              </div>
             </div>
             <Button
               variant="ghost"
@@ -150,19 +165,22 @@ export function Navbar() {
               );
             })}
             <div className="border-t border-gray-200 pt-2">
-              <div className="px-3 py-2 text-sm font-medium text-gray-700">
-                {user.name || user.email}
-          </div>
-            <button
-              onClick={handleLogout}
+              <div className="px-3 py-2">
+                <div className="text-sm font-medium text-gray-700">
+                  {user.name || user.email}
+                </div>
+                <div className="text-xs text-gray-500 capitalize">{user.role}</div>
+              </div>
+              <button
+                onClick={handleLogout}
                 className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
-            >
+              >
                 <LogOut className="h-5 w-5" />
-              Sign Out
-            </button>
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
-      </div>
       )}
     </nav>
   );

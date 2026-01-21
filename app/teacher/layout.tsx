@@ -13,6 +13,9 @@ export default async function TeacherLayout({
     redirect("/login");
   }
 
+  // Teachers can access this area
+  // Admins can also access (to view teacher schedules if needed)
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
