@@ -24,6 +24,19 @@ export default function SignupPage() {
     }
   }, [user, router]);
 
+  // Password validation
+  const validatePassword = (pwd: string) => {
+    const errors: string[] = [];
+    if (pwd.length < 8) errors.push("At least 8 characters");
+    if (!/[A-Z]/.test(pwd)) errors.push("One uppercase letter");
+    if (!/[a-z]/.test(pwd)) errors.push("One lowercase letter");
+    if (!/\d/.test(pwd)) errors.push("One number");
+    return errors;
+  };
+
+  const passwordErrors = validatePassword(password);
+  const isPasswordValid = passwordErrors.length === 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -33,8 +46,8 @@ export default function SignupPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long");
+    if (!isPasswordValid) {
+      setError("Password does not meet requirements");
       return;
     }
 
@@ -161,13 +174,31 @@ export default function SignupPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                className={`mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-blue-500 ${
+                  password && !isPasswordValid 
+                    ? "border-red-300 focus:border-red-500" 
+                    : "border-gray-300 focus:border-blue-500"
+                }`}
                 placeholder="Enter your password"
-                minLength={6}
+                minLength={8}
               />
-              <p className="mt-1 text-xs text-gray-500">
-                Must be at least 6 characters
-              </p>
+              <div className="mt-2 space-y-1">
+                <p className="text-xs font-medium text-gray-600">Password must have:</p>
+                <div className="grid grid-cols-2 gap-1">
+                  <div className={`flex items-center gap-1 text-xs ${password.length >= 8 ? "text-green-600" : "text-gray-400"}`}>
+                    {password.length >= 8 ? "✓" : "○"} 8+ characters
+                  </div>
+                  <div className={`flex items-center gap-1 text-xs ${/[A-Z]/.test(password) ? "text-green-600" : "text-gray-400"}`}>
+                    {/[A-Z]/.test(password) ? "✓" : "○"} Uppercase letter
+                  </div>
+                  <div className={`flex items-center gap-1 text-xs ${/[a-z]/.test(password) ? "text-green-600" : "text-gray-400"}`}>
+                    {/[a-z]/.test(password) ? "✓" : "○"} Lowercase letter
+                  </div>
+                  <div className={`flex items-center gap-1 text-xs ${/\d/.test(password) ? "text-green-600" : "text-gray-400"}`}>
+                    {/\d/.test(password) ? "✓" : "○"} Number
+                  </div>
+                </div>
+              </div>
             </div>
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">

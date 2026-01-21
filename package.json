@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "convex": "^1.15.0",
@@ -20,6 +21,7 @@
     "tailwind-merge": "^2.5.2"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.14.12",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
