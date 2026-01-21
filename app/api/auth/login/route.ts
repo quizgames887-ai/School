@@ -25,7 +25,10 @@ export async function POST(request: NextRequest) {
     const email = body.email?.trim();
     const password = body.password?.trim();
 
+    console.log("[LOGIN] Attempt for email:", email);
+
     if (!email || !password) {
+      console.log("[LOGIN] Missing email or password");
       return NextResponse.json(
         { error: "Email and password are required" },
         { status: 400 }
@@ -33,11 +36,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user by email
+    console.log("[LOGIN] Querying user by email...");
     const user = await convexClient.query(api.queries.users.getByEmail, {
       email,
     });
 
+    console.log("[LOGIN] User found:", user ? { id: user._id, email: user.email, hasPasswordHash: !!user.passwordHash } : null);
+
     if (!user) {
+      console.log("[LOGIN] No user found for email:", email);
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 401 }
@@ -47,12 +54,22 @@ export async function POST(request: NextRequest) {
     // Verify password
     const passwordHash = hashPassword(password);
     
+    console.log("[LOGIN] Password verification:", {
+      inputPasswordLength: password.length,
+      computedHashLength: passwordHash.length,
+      storedHashLength: user.passwordHash?.length,
+      hashesMatch: user.passwordHash === passwordHash,
+    });
+    
     if (user.passwordHash !== passwordHash) {
+      console.log("[LOGIN] Password mismatch for user:", email);
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 401 }
       );
     }
+    
+    console.log("[LOGIN] Password verified successfully for user:", email);
 
     // Clear any existing session first to avoid conflicts
     await deleteSession();
