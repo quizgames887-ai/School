@@ -118,39 +118,42 @@ export function TeacherScheduleView({
   const dayNames = DAYS[lang];
 
   return (
-    <div className="space-y-2" dir={lang === "ar" ? "rtl" : "ltr"}>
+    <div className="space-y-4" dir={lang === "ar" ? "rtl" : "ltr"}>
       {teacherName && (
-        <div className="mb-2 pb-1.5 border-b border-gray-200">
-          <div className="flex items-center gap-1.5">
-            <div className="h-5 w-5 rounded bg-blue-100 flex items-center justify-center">
-              <Users className="h-2.5 w-2.5 text-blue-600" />
+        <div className="mb-3 pb-2 border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded-md bg-blue-100 flex items-center justify-center">
+              <Users className="h-3 w-3 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-xs font-bold text-gray-900">{teacherName}</h2>
-              <p className="text-[8px] text-gray-500">Weekly Schedule</p>
+              <h2 className="text-sm font-bold text-gray-900">{teacherName}</h2>
+              <p className="text-[10px] text-gray-500">Weekly Schedule Overview</p>
             </div>
           </div>
         </div>
       )}
 
-      <div className="overflow-x-auto w-full">
-        <div className="w-full border border-gray-200 rounded overflow-hidden bg-white text-[8px]">
+      <div className="overflow-x-auto -mx-1 px-1 w-full">
+        <div className="w-full border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white">
           {/* Header row with days */}
           <div
-            className="grid bg-gray-100 border-b border-gray-200"
+            className="grid bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200"
             style={{
-              gridTemplateColumns: `68px repeat(${weekdays.length}, minmax(68px, 1fr))`,
+              gridTemplateColumns: `85px repeat(${weekdays.length}, minmax(85px, 1fr))`,
             }}
           >
-            <div className="border-r border-gray-200 px-1 py-0.5 font-semibold text-gray-600 text-[8px]">
-              {lang === "ar" ? "الحصة" : "Period"}
+            <div className="border-r border-gray-200 p-1.5 font-semibold text-gray-700 text-[9px] uppercase tracking-wide">
+              <div className="flex items-center gap-0.5">
+                <Clock className="h-2 w-2 text-gray-500" />
+                {lang === "ar" ? "الحصة" : "Period"}
+              </div>
             </div>
             {weekdays.map((dayIndex) => (
               <div
                 key={dayIndex}
-                className="border-r border-gray-200 last:border-r-0 px-1 py-0.5 text-center font-semibold text-gray-600 text-[8px]"
+                className="border-r border-gray-200 last:border-r-0 p-1.5 text-center font-semibold text-gray-700 text-[9px] uppercase tracking-wide"
               >
-                {dayNames[dayIndex].slice(0, 3)}
+                {dayNames[dayIndex]}
               </div>
             ))}
           </div>
@@ -160,19 +163,26 @@ export function TeacherScheduleView({
             <div
               key={period._id}
               className={`grid border-b border-gray-200 last:border-b-0 ${
-                periodIndex % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                periodIndex % 2 === 0 ? "bg-white" : "bg-gray-50/30"
               }`}
               style={{
-                gridTemplateColumns: `68px repeat(${weekdays.length}, minmax(68px, 1fr))`,
+                gridTemplateColumns: `85px repeat(${weekdays.length}, minmax(85px, 1fr))`,
               }}
             >
               {/* Period name column */}
-              <div className="border-r border-gray-200 bg-gray-50 px-1 py-0.5">
-                <div className="font-semibold text-gray-800 text-[7px] leading-tight truncate">
-                  {lang === "ar" && period.nameAr ? period.nameAr : period.name}
-                </div>
-                <div className="text-[6px] text-gray-500 leading-tight">
-                  {period.startTime}-{period.endTime}
+              <div className="border-r border-gray-200 bg-gradient-to-r from-gray-50 to-white p-1">
+                <div className="flex items-center gap-1">
+                  <div className="flex-shrink-0 h-4 w-4 rounded bg-blue-100 flex items-center justify-center">
+                    <Clock className="h-2 w-2 text-blue-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-gray-900 text-[9px] leading-tight truncate">
+                      {lang === "ar" && period.nameAr ? period.nameAr : period.name}
+                    </div>
+                    <div className="text-[8px] text-gray-500 leading-tight">
+                      {period.startTime} - {period.endTime}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -183,34 +193,52 @@ export function TeacherScheduleView({
                 return (
                   <div
                     key={dayIndex}
-                    className="border-r border-gray-200 last:border-r-0 p-0.5"
-                    style={{ minHeight: "36px" }}
+                    className="border-r border-gray-200 last:border-r-0 p-1"
+                    style={{ minHeight: "65px" }}
                   >
                     {cellLectures.length > 0 ? (
-                      <div>
+                      <div className="space-y-0.5">
                         {cellLectures.map((lecture) => (
                           <div
                             key={lecture._id}
-                            className={`rounded-sm px-0.5 py-0.5 ${
+                            className={`rounded p-1.5 text-[8px] ${
                               onLectureClick
                                 ? "cursor-pointer bg-blue-500 text-white hover:bg-blue-600"
-                                : "bg-blue-100 text-blue-900"
+                                : "bg-blue-50 text-blue-900 border border-blue-200"
                             }`}
                             onClick={() => onLectureClick?.(lecture)}
-                            title={`${lecture.subjectName || "?"} - ${lecture.sectionName || lecture.className || "?"}`}
+                            title={`${lecture.subjectName || "Unknown"} - ${lecture.sectionName || lecture.className || "Unknown"} - ${lecture.sectionGrade || ""}`}
                           >
-                            <div className="font-bold text-[7px] leading-tight truncate">
-                              {lecture.subjectName || "?"}
+                            {/* Subject Name */}
+                            <div className="font-bold text-[8px] leading-tight">
+                              {lecture.subjectName || "Unknown"}
                             </div>
-                            <div className="text-[6px] opacity-80 leading-tight truncate">
-                              {lecture.sectionName || lecture.className || "?"}
+                            {/* Section & Grade */}
+                            <div className="text-[7px] opacity-90 leading-tight mt-0.5">
+                              {lecture.sectionName || lecture.className || "Unknown"}
+                              {lecture.sectionGrade && ` - ${lecture.sectionGrade}`}
                             </div>
+                            {/* Students Count */}
+                            {lecture.sectionNumberOfStudents !== undefined && (
+                              <div className="text-[6px] opacity-75 leading-tight">
+                                ({lecture.sectionNumberOfStudents} {lang === "ar" ? "طالب" : "students"})
+                              </div>
+                            )}
+                            {/* Lesson Name */}
+                            {lecture.lessonName && (
+                              <div className="text-[6px] opacity-70 leading-tight mt-0.5 pt-0.5 border-t border-white/20">
+                                {lecture.lessonName}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="flex items-center justify-center h-full min-h-[28px]">
-                        <span className="text-gray-300 text-[8px]">-</span>
+                      <div className="flex items-center justify-center h-full min-h-[40px]">
+                        <div className="text-center">
+                          <div className="text-gray-300 text-sm">—</div>
+                          <div className="text-[7px] text-gray-400">Free</div>
+                        </div>
                       </div>
                     )}
                   </div>
