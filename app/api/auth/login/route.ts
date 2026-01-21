@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       console.log("[LOGIN] No user found for email:", email);
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: `User not found with email: ${email}` },
         { status: 401 }
       );
     }
@@ -59,12 +59,14 @@ export async function POST(request: NextRequest) {
       computedHashLength: passwordHash.length,
       storedHashLength: user.passwordHash?.length,
       hashesMatch: user.passwordHash === passwordHash,
+      computedHash: passwordHash,
+      storedHash: user.passwordHash,
     });
     
     if (user.passwordHash !== passwordHash) {
       console.log("[LOGIN] Password mismatch for user:", email);
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: `Password mismatch. Expected hash length: ${user.passwordHash?.length}, Got: ${passwordHash.length}` },
         { status: 401 }
       );
     }
