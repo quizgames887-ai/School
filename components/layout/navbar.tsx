@@ -16,7 +16,7 @@ import {
   X,
   Languages,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/translation-context";
 
@@ -26,6 +26,8 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const { t } = useTranslation();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const navItemsRef = useRef<HTMLDivElement | null>(null);
 
   if (!user) return null;
 
@@ -54,9 +56,43 @@ export function Navbar() {
     await logout();
   };
 
+  useEffect(() => {
+    const measure = () => {
+      const container = containerRef.current;
+      const navItems = navItemsRef.current;
+      // #region agent log
+      fetch("http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          location: "components/layout/navbar.tsx:measure",
+          message: "Navbar layout metrics",
+          data: {
+            windowWidth: typeof window !== "undefined" ? window.innerWidth : null,
+            containerClientWidth: container?.clientWidth ?? null,
+            navItemsClientWidth: navItems?.clientWidth ?? null,
+            navItemsScrollWidth: navItems?.scrollWidth ?? null,
+            navItemsOverflow:
+              navItems && navItems.scrollWidth > navItems.clientWidth,
+            navItemCount: navItems?.childElementCount ?? null,
+            isDesktop: typeof window !== "undefined" ? window.innerWidth >= 768 : null,
+          },
+          timestamp: Date.now(),
+          sessionId: "debug-session",
+          hypothesisId: "A",
+        }),
+      }).catch(() => {});
+      // #endregion
+    };
+
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [navItems.length]);
+
   return (
     <nav className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/80 backdrop-blur-lg shadow-sm">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div ref={containerRef} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
             <Link
@@ -89,22 +125,27 @@ export function Navbar() {
                 )}
               </div>
             </Link>
-            <div className="ml-10 hidden space-x-1 md:flex">
+            <div ref={navItemsRef} className="ml-10 hidden space-x-1 md:flex">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
+                const isIconOnly = item.href === "/admin/translations";
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                    className={`flex items-center ${
+                      isIconOnly ? "justify-center" : "gap-2"
+                    } rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
                       isActive
                         ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md shadow-blue-500/30"
                         : "text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 hover:text-gray-900"
                     }`}
+                    title={item.label}
                   >
                     <Icon className={`h-4 w-4 ${isActive ? "text-white" : ""}`} />
-                    {item.label}
+                    {!isIconOnly && item.label}
+                    {isIconOnly && <span className="sr-only">{item.label}</span>}
                   </Link>
                 );
               })}
