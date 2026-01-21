@@ -5,17 +5,23 @@ import { api } from "../../../convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner, Skeleton } from "@/components/ui/loading";
 import { Users, GraduationCap, BookOpen, Calendar, AlertCircle, RefreshCw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const teachers = useQuery(api.queries.teachers.getAll);
-  const classes = useQuery(api.queries.classes.getAll);
   const sections = useQuery(api.queries.sections.getAll);
   const subjects = useQuery(api.queries.subjects.getAll);
   const lectures = useQuery(api.queries.lectures.getAll);
   const classSessions = useQuery(api.queries.classSessions.getAll);
+
+  // Calculate unique grades from sections
+  const uniqueGrades = useMemo(() => {
+    if (!sections) return [];
+    const grades = new Set(sections.map(s => s.grade));
+    return Array.from(grades);
+  }, [sections]);
 
   // Error detection
   useEffect(() => {
@@ -24,7 +30,7 @@ export default function DashboardPage() {
     // Check if Convex URL is missing
     if (!convexUrl) {
       setError("NEXT_PUBLIC_CONVEX_URL is not configured. Please set it in your .env.local file.");
-    } else if (teachers === undefined && classes === undefined && sections === undefined && subjects === undefined && lectures === undefined && classSessions === undefined) {
+    } else if (teachers === undefined && sections === undefined && subjects === undefined && lectures === undefined && classSessions === undefined) {
       // If all queries are still undefined after a delay, show a warning
       const timer = setTimeout(() => {
         setError("Queries are taking longer than expected. Make sure 'npx convex dev' is running.");
@@ -33,9 +39,9 @@ export default function DashboardPage() {
     } else {
       setError(null);
     }
-  }, [teachers, classes, sections, subjects, lectures, classSessions]);
+  }, [teachers, sections, subjects, lectures, classSessions]);
 
-  const isLoading = teachers === undefined || classes === undefined || sections === undefined || subjects === undefined || lectures === undefined || classSessions === undefined;
+  const isLoading = teachers === undefined || sections === undefined || subjects === undefined || lectures === undefined || classSessions === undefined;
 
   const stats = [
     {
@@ -56,7 +62,7 @@ export default function DashboardPage() {
     },
     {
       title: "Grade Levels",
-      value: classes?.length || 0,
+      value: uniqueGrades.length,
       description: "Active grade levels",
       icon: GraduationCap,
       color: "text-green-600",
