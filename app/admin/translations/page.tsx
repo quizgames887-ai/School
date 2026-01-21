@@ -103,6 +103,18 @@ const DEFAULT_TRANSLATIONS = [
   { key: "messages.saved", category: "messages", en: "Saved successfully", ar: "تم الحفظ بنجاح" },
   { key: "messages.deleted", category: "messages", en: "Deleted successfully", ar: "تم الحذف بنجاح" },
   { key: "messages.confirmDelete", category: "messages", en: "Are you sure you want to delete?", ar: "هل أنت متأكد من الحذف؟" },
+  
+  // Teacher Schedule Page
+  { key: "teacher.title", category: "teacher", en: "Teacher", ar: "المعلمة" },
+  { key: "teacher.weeklySchedule", category: "teacher", en: "Weekly Schedule", ar: "جدول الحصص الأسبوعي" },
+  { key: "teacher.profileNotFound", category: "teacher", en: "Teacher Profile Not Found", ar: "لم يتم العثور على ملف المعلم" },
+  { key: "teacher.profileNotFoundDesc", category: "teacher", en: "Your account is not linked to a teacher profile. Please contact an administrator.", ar: "حسابك غير مرتبط بملف معلم. يرجى الاتصال بالمسؤول." },
+  { key: "teacher.noLectures", category: "teacher", en: "No Scheduled Lectures", ar: "لا توجد حصص مجدولة" },
+  { key: "teacher.noLecturesDesc", category: "teacher", en: "No lectures have been scheduled for this academic year", ar: "لم يتم جدولة أي حصص للعام الدراسي" },
+  { key: "teacher.scheduleCreated", category: "teacher", en: "Schedule created", ar: "تم إنشاء الجدول" },
+  
+  // Common (additional)
+  { key: "common.schoolName", category: "common", en: "Alahed International Schools", ar: "مدارس العهد الدولية" },
 ];
 
 interface TranslationFormProps {

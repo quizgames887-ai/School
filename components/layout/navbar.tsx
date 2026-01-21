@@ -18,30 +18,32 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/translation-context";
 
 export function Navbar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [logoError, setLogoError] = useState(false);
+  const { t } = useTranslation();
 
   if (!user) return null;
 
-  // Define navigation items based on user role
+  // Define navigation items based on user role - using translations
   const adminNavItems = [
-    { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/admin/users", label: "Users", icon: Users },
-    { href: "/admin/teachers", label: "Teachers", icon: GraduationCap },
-    { href: "/admin/sections", label: "Sections", icon: Users },
-    { href: "/admin/class-sessions", label: "Class Sessions", icon: Calendar },
-    { href: "/admin/curriculum", label: "Curriculum", icon: BookOpen },
-    { href: "/admin/periods", label: "Periods", icon: Clock },
-    { href: "/admin/schedule", label: "Schedule", icon: Calendar },
-    { href: "/admin/translations", label: "Translations", icon: Languages },
+    { href: "/admin/dashboard", label: t("nav.dashboard", "Dashboard"), icon: LayoutDashboard },
+    { href: "/admin/users", label: t("nav.users", "Users"), icon: Users },
+    { href: "/admin/teachers", label: t("nav.teachers", "Teachers"), icon: GraduationCap },
+    { href: "/admin/sections", label: t("nav.sections", "Sections"), icon: Users },
+    { href: "/admin/class-sessions", label: t("nav.classSessions", "Class Sessions"), icon: Calendar },
+    { href: "/admin/curriculum", label: t("nav.curriculum", "Curriculum"), icon: BookOpen },
+    { href: "/admin/periods", label: t("nav.periods", "Periods"), icon: Clock },
+    { href: "/admin/schedule", label: t("nav.schedule", "Schedule"), icon: Calendar },
+    { href: "/admin/translations", label: t("nav.translations", "Translations"), icon: Languages },
   ];
 
   const teacherNavItems = [
-    { href: "/teacher/schedule", label: "My Schedule", icon: Calendar },
+    { href: "/teacher/schedule", label: t("nav.mySchedule", "My Schedule"), icon: Calendar },
   ];
 
   // Use appropriate nav items based on role
@@ -127,7 +129,7 @@ export function Navbar() {
               className="hidden sm:flex hover:bg-red-50 hover:text-red-600"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
+              {t("nav.signOut", "Sign Out")}
             </Button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -178,7 +180,7 @@ export function Navbar() {
                 className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
               >
                 <LogOut className="h-5 w-5" />
-                Sign Out
+                {t("nav.signOut", "Sign Out")}
               </button>
             </div>
           </div>
