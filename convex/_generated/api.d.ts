@@ -17,6 +17,7 @@ import type * as mutations_periods from "../mutations/periods.js";
 import type * as mutations_sections from "../mutations/sections.js";
 import type * as mutations_subjects from "../mutations/subjects.js";
 import type * as mutations_teachers from "../mutations/teachers.js";
+import type * as mutations_translations from "../mutations/translations.js";
 import type * as mutations_units from "../mutations/units.js";
 import type * as mutations_users from "../mutations/users.js";
 import type * as queries_classSessions from "../queries/classSessions.js";
@@ -29,6 +30,7 @@ import type * as queries_periods from "../queries/periods.js";
 import type * as queries_sections from "../queries/sections.js";
 import type * as queries_subjects from "../queries/subjects.js";
 import type * as queries_teachers from "../queries/teachers.js";
+import type * as queries_translations from "../queries/translations.js";
 import type * as queries_users from "../queries/users.js";
 
 import type {
@@ -47,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   "mutations/sections": typeof mutations_sections;
   "mutations/subjects": typeof mutations_subjects;
   "mutations/teachers": typeof mutations_teachers;
+  "mutations/translations": typeof mutations_translations;
   "mutations/units": typeof mutations_units;
   "mutations/users": typeof mutations_users;
   "queries/classSessions": typeof queries_classSessions;
@@ -59,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   "queries/sections": typeof queries_sections;
   "queries/subjects": typeof queries_subjects;
   "queries/teachers": typeof queries_teachers;
+  "queries/translations": typeof queries_translations;
   "queries/users": typeof queries_users;
 }>;
 
