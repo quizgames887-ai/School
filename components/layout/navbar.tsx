@@ -140,6 +140,17 @@ export function Navbar() {
               {t("nav.signOut", "Sign Out")}
             </button>
           </div>
+          {/* Copyright */}
+          <div className="border-t border-gray-100 px-3 py-2">
+            <a
+              href="https://palmware.co/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-center text-[10px] text-gray-400 hover:text-blue-500 transition-colors"
+            >
+              © {new Date().getFullYear()} Palmware
+            </a>
+          </div>
         </nav>
       </div>
 
@@ -235,6 +246,17 @@ export function Navbar() {
             <LogOut className={`h-4 w-4 ${collapsed ? "" : "mr-2"}`} />
             {!collapsed && t("nav.signOut", "Sign Out")}
           </Button>
+          {/* Copyright */}
+          <div className="border-t border-gray-100 mt-2 pt-2">
+            <a
+              href="https://palmware.co/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`block text-center text-[10px] text-gray-400 hover:text-blue-500 transition-colors ${collapsed ? "px-1" : ""}`}
+            >
+              {collapsed ? "©" : `© ${new Date().getFullYear()} Palmware`}
+            </a>
+          </div>
         </div>
       </aside>
 
