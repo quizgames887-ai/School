@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   X,
+  Languages,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ export function Navbar() {
     { href: "/admin/curriculum", label: "Curriculum", icon: BookOpen },
     { href: "/admin/periods", label: "Periods", icon: Clock },
     { href: "/admin/schedule", label: "Schedule", icon: Calendar },
+    { href: "/admin/translations", label: "Translations", icon: Languages },
   ];
 
   const teacherNavItems = [

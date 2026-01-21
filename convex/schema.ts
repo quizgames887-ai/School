@@ -111,4 +111,21 @@ export default defineSchema({
     academicYear: v.string(), // Link to academic year
   })
     .index("by_academic_year", ["academicYear", "order"]),
+
+  // Translations table for admin-managed translations
+  translations: defineTable({
+    key: v.string(), // Translation key (e.g., "dashboard", "users", "schedule")
+    category: v.string(), // Category for grouping (e.g., "navigation", "common", "schedule")
+    en: v.string(), // English translation
+    ar: v.string(), // Arabic translation
+  })
+    .index("by_key", ["key"])
+    .index("by_category", ["category"]),
+
+  // App settings including language preference
+  appSettings: defineTable({
+    key: v.string(),
+    value: v.string(),
+  })
+    .index("by_key", ["key"]),
 });
