@@ -652,11 +652,17 @@ function ReplacementTeacherCard({
   );
 
   // Get periods where the replacement teacher has lectures (busy periods)
+  // When a day filter is set, only consider lectures on that day
   const busyPeriodIds = useMemo(() => {
     const busy = new Set();
     if (replacementLectures) {
       replacementLectures
-        .filter((l: any) => l.recurring && l.academicYear === academicYear)
+        .filter((l: any) => {
+          if (!l.recurring || l.academicYear !== academicYear) return false;
+          // When filterDay is set, only consider lectures on that specific day
+          if (filterDay !== "" && l.dayOfWeek !== filterDay) return false;
+          return true;
+        })
         .forEach((lecture: any) => {
           if (lecture.periodId) {
             busy.add(lecture.periodId);
@@ -664,7 +670,7 @@ function ReplacementTeacherCard({
         });
     }
     return busy;
-  }, [replacementLectures, academicYear]);
+  }, [replacementLectures, academicYear, filterDay]);
 
   // Get periods where the selected teacher has lectures (to filter available periods)
   const selectedTeacherPeriodIds = useMemo(() => {
