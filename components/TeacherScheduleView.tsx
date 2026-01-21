@@ -118,40 +118,40 @@ export function TeacherScheduleView({
   const dayNames = DAYS[lang];
 
   return (
-    <div className="space-y-6" dir={lang === "ar" ? "rtl" : "ltr"}>
+    <div className="space-y-4" dir={lang === "ar" ? "rtl" : "ltr"}>
       {teacherName && (
-        <div className="mb-4 pb-3 border-b border-gray-200">
+        <div className="mb-3 pb-2 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
-              <Users className="h-4 w-4 text-blue-600" />
+            <div className="h-6 w-6 rounded-md bg-blue-100 flex items-center justify-center">
+              <Users className="h-3 w-3 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">{teacherName}</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Weekly Schedule Overview</p>
+              <h2 className="text-sm font-bold text-gray-900">{teacherName}</h2>
+              <p className="text-[10px] text-gray-500">Weekly Schedule Overview</p>
             </div>
           </div>
         </div>
       )}
 
-      <div className="overflow-x-auto -mx-2 px-2 w-full">
-        <div className="w-full border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
+      <div className="overflow-x-auto -mx-1 px-1 w-full">
+        <div className="w-full border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white">
           {/* Header row with days */}
           <div
-            className="grid bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200"
+            className="grid bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200"
             style={{
-              gridTemplateColumns: `110px repeat(${weekdays.length}, minmax(110px, 1fr))`,
+              gridTemplateColumns: `85px repeat(${weekdays.length}, minmax(85px, 1fr))`,
             }}
           >
-            <div className="border-r border-gray-200 p-2 font-bold text-gray-800 text-[10px] uppercase tracking-wide">
-              <div className="flex items-center gap-1">
-                <Clock className="h-2.5 w-2.5 text-gray-600" />
+            <div className="border-r border-gray-200 p-1.5 font-semibold text-gray-700 text-[9px] uppercase tracking-wide">
+              <div className="flex items-center gap-0.5">
+                <Clock className="h-2 w-2 text-gray-500" />
                 {lang === "ar" ? "الحصة" : "Period"}
               </div>
             </div>
             {weekdays.map((dayIndex) => (
               <div
                 key={dayIndex}
-                className="border-r border-gray-200 last:border-r-0 p-2 text-center font-bold text-gray-800 text-[10px] uppercase tracking-wide"
+                className="border-r border-gray-200 last:border-r-0 p-1.5 text-center font-semibold text-gray-700 text-[9px] uppercase tracking-wide"
               >
                 {dayNames[dayIndex]}
               </div>
@@ -162,24 +162,24 @@ export function TeacherScheduleView({
           {sortedPeriods.map((period, periodIndex) => (
             <div
               key={period._id}
-              className={`grid border-b border-gray-200 last:border-b-0 transition-all duration-200 ${
-                periodIndex % 2 === 0 ? "bg-white hover:bg-gray-50" : "bg-gray-50/50 hover:bg-gray-100"
+              className={`grid border-b border-gray-200 last:border-b-0 ${
+                periodIndex % 2 === 0 ? "bg-white" : "bg-gray-50/30"
               }`}
               style={{
-                gridTemplateColumns: `110px repeat(${weekdays.length}, minmax(110px, 1fr))`,
+                gridTemplateColumns: `85px repeat(${weekdays.length}, minmax(85px, 1fr))`,
               }}
             >
               {/* Period name column */}
-              <div className="border-r border-gray-200 bg-gradient-to-r from-gray-50 to-white p-1.5">
-                <div className="flex items-center gap-1.5">
-                  <div className="flex-shrink-0 h-5 w-5 rounded bg-blue-100 flex items-center justify-center">
-                    <Clock className="h-2.5 w-2.5 text-blue-600" />
+              <div className="border-r border-gray-200 bg-gradient-to-r from-gray-50 to-white p-1">
+                <div className="flex items-center gap-1">
+                  <div className="flex-shrink-0 h-4 w-4 rounded bg-blue-100 flex items-center justify-center">
+                    <Clock className="h-2 w-2 text-blue-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900 text-[10px] leading-tight">
+                    <div className="font-semibold text-gray-900 text-[9px] leading-tight truncate">
                       {lang === "ar" && period.nameAr ? period.nameAr : period.name}
                     </div>
-                    <div className="text-[9px] text-gray-600 font-medium mt-0.5 leading-tight">
+                    <div className="text-[8px] text-gray-500 leading-tight">
                       {period.startTime} - {period.endTime}
                     </div>
                   </div>
@@ -193,57 +193,37 @@ export function TeacherScheduleView({
                 return (
                   <div
                     key={dayIndex}
-                    className="border-r border-gray-200 last:border-r-0 p-1.5 bg-white/50"
-                    style={{ minHeight: "75px" }}
+                    className="border-r border-gray-200 last:border-r-0 p-1"
+                    style={{ minHeight: "50px" }}
                   >
                     {cellLectures.length > 0 ? (
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         {cellLectures.map((lecture) => (
                           <div
                             key={lecture._id}
-                            className={`rounded p-1.5 text-[10px] transition-all duration-200 shadow-sm ${
+                            className={`rounded p-1 text-[8px] ${
                               onLectureClick
-                                ? "cursor-pointer bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 hover:shadow-md transform hover:scale-[1.02]"
+                                ? "cursor-pointer bg-blue-500 text-white hover:bg-blue-600"
                                 : "bg-blue-50 text-blue-900 border border-blue-200"
                             }`}
                             onClick={() => onLectureClick?.(lecture)}
                             title={`${lecture.subjectName || "Unknown"} - ${lecture.sectionName || lecture.className || "Unknown"}`}
                           >
-                            <div className="font-bold text-[10px] mb-0.5 leading-tight break-words">
+                            <div className="font-bold text-[8px] leading-tight truncate">
                               {lecture.subjectName || "Unknown"}
                             </div>
-                            <div className="text-[9px] opacity-90 mt-0.5 leading-tight break-words line-clamp-2">
-                              {(() => {
-                                let displayName = "Unknown";
-                                if (lecture.sectionName) {
-                                  // Show full section info: "Section Name - Grade (X students)"
-                                  const parts = [lecture.sectionName];
-                                  if (lecture.sectionGrade) {
-                                    parts.push(lecture.sectionGrade);
-                                  }
-                                  if (lecture.sectionNumberOfStudents !== undefined) {
-                                    parts.push(`(${lecture.sectionNumberOfStudents} students)`);
-                                  }
-                                  displayName = parts.join(" - ");
-                                } else if (lecture.className) {
-                                  displayName = lecture.className;
-                                }
-                                return displayName;
-                              })()}
+                            <div className="text-[7px] opacity-90 leading-tight truncate">
+                              {lecture.sectionName || lecture.className || "Unknown"}
+                              {lecture.sectionNumberOfStudents !== undefined && ` (${lecture.sectionNumberOfStudents})`}
                             </div>
-                            {lecture.lessonName && (
-                              <div className="text-[9px] opacity-75 mt-0.5 pt-0.5 border-t border-white/20 break-words line-clamp-1">
-                                {lecture.lessonName}
-                              </div>
-                            )}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="flex items-center justify-center h-full min-h-[60px]">
+                      <div className="flex items-center justify-center h-full min-h-[40px]">
                         <div className="text-center">
-                          <div className="text-gray-300 text-lg mb-0.5">—</div>
-                          <div className="text-[9px] text-gray-400">Free</div>
+                          <div className="text-gray-300 text-sm">—</div>
+                          <div className="text-[7px] text-gray-400">Free</div>
                         </div>
                       </div>
                     )}
@@ -257,3 +237,5 @@ export function TeacherScheduleView({
     </div>
   );
 }
+
+export default TeacherScheduleView;
