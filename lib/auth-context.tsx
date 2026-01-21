@@ -27,7 +27,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refresh = async () => {
     try {
-      const res = await fetch("/api/auth/me");
+      // Add cache-busting timestamp to prevent stale cached responses
+      const res = await fetch(`/api/auth/me?t=${Date.now()}`, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
@@ -52,7 +58,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const res = await fetch("/api/auth/login", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+      },
+      cache: "no-store",
       body: JSON.stringify({ email: trimmedEmail, password: trimmedPassword }),
     });
 
@@ -83,10 +93,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await fetch("/api/auth/logout", { 
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+      },
+    });
     setUser(null);
-    router.push("/login");
-    router.refresh();
+    // Force a hard refresh to clear any cached auth state
+    window.location.href = "/login";
   };
 
   return (

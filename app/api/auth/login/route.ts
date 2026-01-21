@@ -4,6 +4,10 @@ import { api } from "../../../../convex/_generated/api";
 import { createSession, deleteSession } from "@/lib/session";
 import { hashPassword } from "@/lib/password";
 
+// Disable static caching for this route
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
   throw new Error(
     "Missing required environment variable: NEXT_PUBLIC_CONVEX_URL\n" +
@@ -65,6 +69,11 @@ export async function POST(request: NextRequest) {
         role: user.role,
       },
     });
+
+    // Prevent caching of auth responses
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    response.headers.set("Pragma", "no-cache");
+    response.headers.set("Expires", "0");
 
     return response;
   } catch (error: any) {
