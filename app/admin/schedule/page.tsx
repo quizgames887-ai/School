@@ -634,10 +634,14 @@ function ReplacementTeacherCard({
   replacementTeacher,
   periods,
   academicYear,
+  filterDay,
+  teacherLectures,
 }: {
   replacementTeacher: any;
   periods: any[];
   academicYear: string;
+  filterDay: number | "";
+  teacherLectures: any[];
 }) {
   // Query lectures for this replacement teacher
   const replacementLectures = useQuery(
@@ -662,7 +666,25 @@ function ReplacementTeacherCard({
     return busy;
   }, [replacementLectures, academicYear]);
 
+  // Get periods where the selected teacher has lectures (to filter available periods)
+  const selectedTeacherPeriodIds = useMemo(() => {
+    const periodIds = new Set<string>();
+    teacherLectures
+      .filter((lecture: any) => {
+        if (!lecture.recurring || lecture.academicYear !== academicYear) return false;
+        if (filterDay !== "" && lecture.dayOfWeek !== filterDay) return false;
+        return true;
+      })
+      .forEach((lecture: any) => {
+        if (lecture.periodId) {
+          periodIds.add(lecture.periodId);
+        }
+      });
+    return periodIds;
+  }, [teacherLectures, academicYear, filterDay]);
+
   // Find available periods (periods where replacement teacher has no lectures)
+  // Only show periods where the selected teacher has lectures (optionally filtered by day)
   const availablePeriods = useMemo(() => {
     if (!periods || periods.length === 0) {
       return [];
@@ -676,10 +698,12 @@ function ReplacementTeacherCard({
         const periodIdStr = String(p._id);
         const isNotBusy = !busyPeriodIds.has(periodIdStr) && !busyPeriodIds.has(p._id);
         const matchesAcademicYear = p.academicYear === academicYear;
-        return isNotBreak && isNotBusy && matchesAcademicYear;
+        // Only show periods where the selected teacher has lectures (optionally filtered by day)
+        const isSelectedTeacherPeriod = selectedTeacherPeriodIds.has(periodIdStr) || selectedTeacherPeriodIds.has(p._id);
+        return isNotBreak && isNotBusy && matchesAcademicYear && isSelectedTeacherPeriod;
       })
       .sort((a: any, b: any) => a.order - b.order);
-  }, [periods, busyPeriodIds, academicYear]);
+  }, [periods, busyPeriodIds, academicYear, selectedTeacherPeriodIds]);
 
   return (
     <div className="p-4 rounded-xl border border-gray-200/80 bg-white/80 backdrop-blur-sm hover:border-green-400 hover:shadow-md hover:shadow-green-500/10 transition-all duration-300 card-hover">
@@ -958,7 +982,6 @@ function TeacherInfoSidebar({
               onClick={() => {
                 setViewMode("period");
                 setFilterSubjectId("");
-                setFilterDay("");
               }}
               className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-all ${
                 viewMode === "period"
@@ -971,8 +994,8 @@ function TeacherInfoSidebar({
           </div>
         </div>
 
-        {/* Day Filter (only shown in By Period mode) */}
-        {viewMode === "period" && teacherDays.length > 0 && (
+        {/* Day Filter (shown in all view modes) */}
+        {teacherDays.length > 0 && (
           <div className="mb-4">
             <label className="block text-xs font-semibold text-gray-700 mb-2">
               Filter by Day
@@ -1029,6 +1052,8 @@ function TeacherInfoSidebar({
                     replacementTeacher={rt}
                     periods={periods}
                     academicYear={academicYear}
+                    filterDay={filterDay}
+                    teacherLectures={teacherLectures}
                   />
                 ))}
               </div>
@@ -1037,11 +1062,15 @@ function TeacherInfoSidebar({
                 <p className="text-sm text-gray-500">
                   {filterSubjectId
                     ? "No replacement teachers available for selected subject"
+                    : filterDay !== ""
+                    ? `No replacement teachers available on ${dayNames[filterDay]}`
                     : "No replacement teachers available"}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">
                   {filterSubjectId
                     ? "Try selecting a different subject or clear the filter"
+                    : filterDay !== ""
+                    ? "Try selecting a different day or clear the filter"
                     : "No other teachers share the same subjects"}
                 </p>
               </div>
