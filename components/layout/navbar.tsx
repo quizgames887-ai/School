@@ -29,8 +29,6 @@ export function Navbar() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const navItemsRef = useRef<HTMLDivElement | null>(null);
 
-  if (!user) return null;
-
   // Define navigation items based on user role - using translations
   const adminNavItems = [
     { href: "/admin/dashboard", label: t("nav.dashboard", "Dashboard"), icon: LayoutDashboard },
@@ -89,6 +87,8 @@ export function Navbar() {
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, [navItems.length]);
+
+  if (!user) return null;
 
   return (
     <nav className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/80 backdrop-blur-lg shadow-sm">
