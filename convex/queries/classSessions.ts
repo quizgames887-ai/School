@@ -50,7 +50,7 @@ export const getUnsyncedLecturesCount = query({
     const existingKeys = new Set<string>();
     sessionsThisWeek.forEach((s) => {
       const key = `${s.teacherId}_${s.sectionId}_${s.date}_${s.time}`;
-      existingKeys.set(key);
+      existingKeys.add(key);
     });
     
     // Count lectures without corresponding sessions this week
