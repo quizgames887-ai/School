@@ -6,20 +6,33 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner, Skeleton } from "@/components/ui/loading";
-import { Calendar, Plus, Edit2, Trash2, Clock, Filter, RefreshCw, Zap } from "lucide-react";
+import { Calendar, Plus, Edit2, Trash2, Clock, Filter, RefreshCw, Zap, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { toast } from "@/components/ui/toast";
+
+// Day names for the weekly view
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_NAMES_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default function ClassSessionsPage() {
   const classSessions = useQuery(api.queries.classSessions.getAll);
   const teachers = useQuery(api.queries.teachers.getAll);
   const subjects = useQuery(api.queries.subjects.getAll);
+  const sections = useQuery(api.queries.sections.getAll);
+  const periods = useQuery(api.queries.periods.getByAcademicYear, { academicYear: "2025-2026" });
   const lectures = useQuery(api.queries.lectures.getAll);
+  
   const [showForm, setShowForm] = useState(false);
   const [showSyncForm, setShowSyncForm] = useState(false);
   const [editingSession, setEditingSession] = useState<string | null>(null);
-  const [filterGrade, setFilterGrade] = useState<string>("");
-  const [filterTeacher, setFilterTeacher] = useState<string>("");
-  const [filterCurriculum, setFilterCurriculum] = useState<string>("");
+  const [selectedSection, setSelectedSection] = useState<string>("");
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const start = new Date(today);
+    start.setDate(today.getDate() - dayOfWeek);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  });
 
   // Count recurring lectures for the sync indicator
   const recurringLecturesCount = useMemo(() => {
@@ -35,67 +48,112 @@ export default function ClassSessionsPage() {
 
   const deleteSession = useMutation(api.mutations.classSessions.deleteClassSession);
 
-  // Group sessions by grade - must be called before any conditional returns
-  const sessionsByGrade = useMemo(() => {
-    if (!classSessions || classSessions instanceof Error) return {};
-    
-    // Apply filters first
-    let filteredSessions = classSessions;
-    
-    if (filterGrade) {
-      filteredSessions = filteredSessions.filter((s: any) => s.sectionGrade === filterGrade);
-    }
-    
-    if (filterTeacher) {
-      filteredSessions = filteredSessions.filter((s: any) => s.teacherId === filterTeacher);
-    }
-    
-    if (filterCurriculum) {
-      filteredSessions = filteredSessions.filter((s: any) => s.curriculumId === filterCurriculum);
-    }
-    
+  // Get sections grouped by grade
+  const sectionsByGrade = useMemo(() => {
+    if (!sections) return {};
     const grouped: Record<string, any[]> = {};
-    filteredSessions.forEach((session: any) => {
-      const grade = session.sectionGrade || "Unknown";
+    sections.forEach((section: any) => {
+      const grade = section.grade || "Unknown";
       if (!grouped[grade]) {
         grouped[grade] = [];
       }
-      grouped[grade].push(session);
+      grouped[grade].push(section);
     });
-    
-    // Sort sessions within each grade by date and time
-    Object.keys(grouped).forEach((grade) => {
-      grouped[grade].sort((a, b) => {
-        const dateCompare = new Date(a.date).getTime() - new Date(b.date).getTime();
-        if (dateCompare !== 0) return dateCompare;
-        return a.time.localeCompare(b.time);
-      });
-    });
-    
     return grouped;
-  }, [classSessions, filterGrade, filterTeacher, filterCurriculum]);
+  }, [sections]);
 
-  // Get unique values for filters
-  const allGrades = useMemo(() => {
-    if (!classSessions) return [];
-    const gradeSet = new Set<string>();
-    classSessions.forEach((session: any) => {
-      if (session.sectionGrade) gradeSet.add(session.sectionGrade);
-    });
-    return Array.from(gradeSet).sort();
-  }, [classSessions]);
+  // Get week dates
+  const weekDates = useMemo(() => {
+    const dates: Date[] = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(currentWeekStart);
+      date.setDate(currentWeekStart.getDate() + i);
+      dates.push(date);
+    }
+    return dates;
+  }, [currentWeekStart]);
+
+  // Format date as ISO string (YYYY-MM-DD)
+  const formatDateISO = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // Get sessions for the selected section and current week
+  const weekSessions = useMemo(() => {
+    if (!classSessions || !selectedSection) return {};
+    
+    const sessionsMap: Record<string, Record<string, any[]>> = {}; // periodId -> dayIndex -> sessions
+    
+    classSessions
+      .filter((s: any) => s.sectionId === selectedSection)
+      .forEach((session: any) => {
+        const sessionDate = new Date(session.date);
+        const dayIndex = sessionDate.getDay();
+        
+        // Check if session is in current week
+        const weekStart = new Date(currentWeekStart);
+        const weekEnd = new Date(currentWeekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        
+        if (sessionDate >= weekStart && sessionDate <= weekEnd) {
+          const periodKey = session.periodId || session.time;
+          if (!sessionsMap[periodKey]) {
+            sessionsMap[periodKey] = {};
+          }
+          if (!sessionsMap[periodKey][dayIndex]) {
+            sessionsMap[periodKey][dayIndex] = [];
+          }
+          sessionsMap[periodKey][dayIndex].push(session);
+        }
+      });
+    
+    return sessionsMap;
+  }, [classSessions, selectedSection, currentWeekStart]);
+
+  // Get sorted periods (non-break only)
+  const sortedPeriods = useMemo(() => {
+    if (!periods) return [];
+    return periods
+      .filter((p: any) => !p.isBreak)
+      .sort((a: any, b: any) => a.order - b.order);
+  }, [periods]);
 
   const handleDelete = async (sessionId: string) => {
-    if (!confirm("Are you sure you want to delete this class session? This action cannot be undone.")) {
-      return;
-    }
+    if (!confirm("Delete this class session?")) return;
     try {
       await deleteSession({ id: sessionId as any });
-      toast("Class session deleted successfully", "success");
+      toast("Class session deleted", "success");
     } catch (error: any) {
       toast(`Error: ${error.message || error}`, "error");
     }
   };
+
+  const goToPreviousWeek = () => {
+    const newStart = new Date(currentWeekStart);
+    newStart.setDate(newStart.getDate() - 7);
+    setCurrentWeekStart(newStart);
+  };
+
+  const goToNextWeek = () => {
+    const newStart = new Date(currentWeekStart);
+    newStart.setDate(newStart.getDate() + 7);
+    setCurrentWeekStart(newStart);
+  };
+
+  const goToCurrentWeek = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const start = new Date(today);
+    start.setDate(today.getDate() - dayOfWeek);
+    start.setHours(0, 0, 0, 0);
+    setCurrentWeekStart(start);
+  };
+
+  // Get selected section details
+  const selectedSectionData = sections?.find((s: any) => s._id === selectedSection);
 
   if (classSessions instanceof Error) {
     return (
@@ -110,7 +168,7 @@ export default function ClassSessionsPage() {
     );
   }
 
-  if (!classSessions) {
+  if (!classSessions || !sections || !periods) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />
@@ -118,146 +176,218 @@ export default function ClassSessionsPage() {
     );
   }
 
-  const grades = Object.keys(sessionsByGrade).sort();
-
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Class Sessions</h1>
-          <p className="mt-1 text-sm text-gray-600">Manage scheduled class sessions</p>
+          <p className="mt-1 text-sm text-gray-600">Weekly timetable per section</p>
         </div>
         <div className="flex gap-2">
           {recurringLecturesCount > 0 && (
             <Button 
               variant="outline" 
               onClick={() => setShowSyncForm(true)}
-              className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 hover:border-purple-300 hover:from-purple-100 hover:to-indigo-100"
+              className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 hover:border-purple-300"
             >
               <Zap className="mr-2 h-4 w-4 text-purple-600" />
               Sync from Schedules
-              <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded-full">
-                {recurringLecturesCount}
-              </span>
             </Button>
           )}
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Class Session
+            Add Session
           </Button>
         </div>
       </div>
 
-      {/* Filters */}
-      {(allGrades.length > 0 || (teachers && teachers.length > 0) || (subjects && subjects.length > 0)) && (
-        <Card className="p-4 bg-gradient-to-r from-gray-50 to-gray-100/50">
-          <div className="flex flex-wrap gap-4 items-end">
-            {allGrades.length > 0 && (
-              <div className="flex-1 min-w-[180px]">
-                <label className="block text-xs font-semibold text-gray-700 mb-2">
-                  <Filter className="inline h-3.5 w-3.5 mr-1" />
-                  Filter by Grade
-                </label>
-                <select
-                  value={filterGrade}
-                  onChange={(e) => setFilterGrade(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:border-gray-400"
-                >
-                  <option value="">All Grades</option>
-                  {allGrades.map((grade) => (
-                    <option key={grade} value={grade}>
-                      {grade}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-            {teachers && teachers.length > 0 && (
-              <div className="flex-1 min-w-[180px]">
-                <label className="block text-xs font-semibold text-gray-700 mb-2">
-                  <Filter className="inline h-3.5 w-3.5 mr-1" />
-                  Filter by Teacher
-                </label>
-                <select
-                  value={filterTeacher}
-                  onChange={(e) => setFilterTeacher(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:border-gray-400"
-                >
-                  <option value="">All Teachers</option>
-                  {teachers.map((teacher: any) => (
-                    <option key={teacher._id} value={teacher._id}>
-                      {teacher.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-            {subjects && subjects.length > 0 && (
-              <div className="flex-1 min-w-[180px]">
-                <label className="block text-xs font-semibold text-gray-700 mb-2">
-                  <Filter className="inline h-3.5 w-3.5 mr-1" />
-                  Filter by Curriculum
-                </label>
-                <select
-                  value={filterCurriculum}
-                  onChange={(e) => setFilterCurriculum(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:border-gray-400"
-                >
-                  <option value="">All Curriculums</option>
-                  {subjects.map((subject: any) => (
-                    <option key={subject._id} value={subject._id}>
-                      {subject.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-            {(filterGrade || filterTeacher || filterCurriculum) && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setFilterGrade("");
-                  setFilterTeacher("");
-                  setFilterCurriculum("");
-                }}
-                className="h-10"
-              >
-                Clear Filters
-              </Button>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {/* Unsynced Lectures Banner */}
+      {/* Sync Banner */}
       {unsyncedInfo && unsyncedInfo.unsyncedCount > 0 && (
-        <Card className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
+        <Card className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100">
-                <RefreshCw className="h-5 w-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="font-medium text-amber-800">
-                  {unsyncedInfo.unsyncedCount} class session{unsyncedInfo.unsyncedCount !== 1 ? "s" : ""} can be auto-generated
-                </p>
-                <p className="text-sm text-amber-600">
-                  Based on your teacher schedules for this week
-                  {unsyncedInfo.nextSyncDate && ` (starting ${new Date(unsyncedInfo.nextSyncDate).toLocaleDateString()})`}
-                </p>
-              </div>
+            <div className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4 text-amber-600" />
+              <span className="text-sm text-amber-800">
+                {unsyncedInfo.unsyncedCount} sessions can be auto-generated from teacher schedules
+              </span>
             </div>
-            <Button
-              onClick={() => setShowSyncForm(true)}
-              className="bg-amber-500 hover:bg-amber-600 text-white"
-            >
-              <Zap className="mr-2 h-4 w-4" />
-              Sync Now
+            <Button size="sm" onClick={() => setShowSyncForm(true)} className="bg-amber-500 hover:bg-amber-600 text-white">
+              <Zap className="mr-1 h-3 w-3" />
+              Sync
             </Button>
           </div>
         </Card>
       )}
 
+      {/* Section Selector */}
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex-1 min-w-[250px]">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Users className="inline h-4 w-4 mr-1" />
+              Select Section
+            </label>
+            <select
+              value={selectedSection}
+              onChange={(e) => setSelectedSection(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            >
+              <option value="">-- Choose a section --</option>
+              {Object.keys(sectionsByGrade).sort().map((grade) => (
+                <optgroup key={grade} label={grade}>
+                  {sectionsByGrade[grade].map((section: any) => (
+                    <option key={section._id} value={section._id}>
+                      {section.name} ({section.numberOfStudents} students)
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+
+          {selectedSection && (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={goToPreviousWeek}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={goToCurrentWeek}>
+                Today
+              </Button>
+              <Button variant="outline" size="sm" onClick={goToNextWeek}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* Timetable */}
+      {selectedSection ? (
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg font-bold">
+                  {selectedSectionData?.grade} - {selectedSectionData?.name}
+                </CardTitle>
+                <p className="text-blue-100 text-sm">
+                  {weekDates[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })} - {weekDates[6].toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                </p>
+              </div>
+              <div className="text-right text-sm text-blue-100">
+                {selectedSectionData?.numberOfStudents} students
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="border-b border-r p-3 text-left text-xs font-semibold text-gray-600 w-24">
+                      Period
+                    </th>
+                    {weekDates.map((date, idx) => {
+                      const isToday = formatDateISO(date) === formatDateISO(new Date());
+                      return (
+                        <th 
+                          key={idx} 
+                          className={`border-b p-3 text-center text-xs font-semibold min-w-[120px] ${
+                            isToday ? "bg-blue-50 text-blue-700" : "text-gray-600"
+                          }`}
+                        >
+                          <div className="font-bold">{DAY_NAMES[idx]}</div>
+                          <div className={`text-xs ${isToday ? "text-blue-600" : "text-gray-400"}`}>
+                            {date.getDate()}/{date.getMonth() + 1}
+                          </div>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedPeriods.map((period: any) => (
+                    <tr key={period._id} className="hover:bg-gray-50/50">
+                      <td className="border-b border-r p-2 bg-gray-50">
+                        <div className="text-sm font-medium text-gray-900">{period.name}</div>
+                        <div className="text-xs text-gray-500">{period.startTime}-{period.endTime}</div>
+                      </td>
+                      {weekDates.map((date, dayIdx) => {
+                        const sessions = weekSessions[period._id]?.[dayIdx] || [];
+                        const isToday = formatDateISO(date) === formatDateISO(new Date());
+                        
+                        return (
+                          <td 
+                            key={dayIdx} 
+                            className={`border-b p-1 align-top ${isToday ? "bg-blue-50/30" : ""}`}
+                          >
+                            {sessions.length > 0 ? (
+                              sessions.map((session: any) => (
+                                <div 
+                                  key={session._id}
+                                  className="group relative p-2 rounded-lg bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 mb-1 hover:shadow-md transition-shadow cursor-pointer"
+                                  onClick={() => {
+                                    setEditingSession(session._id);
+                                    setShowForm(true);
+                                  }}
+                                >
+                                  <div className="text-sm font-semibold text-indigo-900 truncate">
+                                    {session.curriculumName}
+                                  </div>
+                                  <div className="text-xs text-gray-600 truncate">
+                                    {session.teacherName}
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete(session._id);
+                                    }}
+                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-1 rounded bg-red-100 hover:bg-red-200 text-red-600 transition-opacity"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="h-16 flex items-center justify-center">
+                                <span className="text-gray-300 text-xs">-</span>
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Calendar className="mx-auto h-12 w-12 text-gray-300" />
+            <h3 className="mt-4 text-lg font-semibold text-gray-900">Select a Section</h3>
+            <p className="mt-2 text-sm text-gray-500">
+              Choose a section above to view its weekly timetable
+            </p>
+            {classSessions.length === 0 && recurringLecturesCount > 0 && (
+              <div className="mt-6">
+                <Button 
+                  onClick={() => setShowSyncForm(true)}
+                  className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600"
+                >
+                  <Zap className="mr-2 h-4 w-4" />
+                  Generate Sessions from Teacher Schedules
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Modals */}
       {showForm && (
         <ClassSessionForm
           sessionId={editingSession}
@@ -278,165 +408,6 @@ export default function ClassSessionsPage() {
           onSuccess={() => setShowSyncForm(false)}
           teachersList={teachers || []}
         />
-      )}
-
-      {classSessions.length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <Calendar className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-4 text-lg font-semibold text-gray-900">No class sessions</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Get started by creating a new class session.
-            </p>
-            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-              {recurringLecturesCount > 0 && (
-                <Button 
-                  variant="default"
-                  onClick={() => setShowSyncForm(true)}
-                  className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600"
-                >
-                  <Zap className="mr-2 h-4 w-4" />
-                  Auto-Generate from Teacher Schedules
-                  <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-white/20 text-white rounded-full">
-                    {recurringLecturesCount} schedules
-                  </span>
-                </Button>
-              )}
-              <Button variant={recurringLecturesCount > 0 ? "outline" : "default"} onClick={() => setShowForm(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Class Session Manually
-              </Button>
-            </div>
-            {recurringLecturesCount > 0 && (
-              <p className="mt-4 text-xs text-gray-500">
-                You have {recurringLecturesCount} recurring teacher schedule{recurringLecturesCount !== 1 ? "s" : ""} configured. 
-                Use &quot;Auto-Generate&quot; to create class sessions based on these schedules.
-              </p>
-            )}
-            {recurringLecturesCount === 0 && (
-              <p className="mt-4 text-xs text-gray-500">
-                Tip: Set up teacher schedules in the Schedule page first, then use &quot;Sync from Schedules&quot; to auto-generate class sessions.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-8">
-          {grades.length > 0 ? (
-            grades.map((grade) => (
-              <Card key={grade} className="overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b">
-                  <CardTitle className="text-xl font-bold text-gray-900">
-                    {grade}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                            Curriculum
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                            Section
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                            Teacher
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                            Date
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                            Time
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                            Period
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {sessionsByGrade[grade].map((session: any) => (
-                        <tr key={session._id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-                                <Calendar className="h-4 w-4" />
-                              </div>
-                              <span className="text-sm font-medium text-gray-900">
-                                {session.curriculumName}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className="text-sm text-gray-600">
-                              {session.sectionName}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className="text-sm text-gray-600">
-                              {session.teacherName}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className="text-sm text-gray-600">
-                              {new Date(session.date).toLocaleDateString()}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm text-gray-600">
-                                {session.time} - {session.endTime || "N/A"}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className="text-sm text-gray-600">
-                              {session.periodName || "-"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setEditingSession(session._id);
-                                  setShowForm(true);
-                                }}
-                              >
-                                <Edit2 className="mr-1.5 h-3.5 w-3.5" />
-                                Edit
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDelete(session._id)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <p className="text-sm text-gray-500">No class sessions found matching the selected filters.</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
       )}
     </div>
   );
