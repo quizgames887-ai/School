@@ -345,15 +345,81 @@ function ScheduleForm({
   );
 
   // Update conflicts state when queries change (real-time)
+  // Also enrich with names from already-loaded data as fallback
   useEffect(() => {
     if (teacherConflicts !== undefined || sectionConflicts !== undefined) {
+      // Client-side enrichment using already-loaded data
+      const enrichedTeacherConflicts = (teacherConflicts || []).map((c: any) => {
+        let sectionName = c.sectionName;
+        let sectionGrade = c.sectionGrade || "";
+        // If sectionName is missing or "Unknown", try to look it up client-side
+        if (!sectionName || sectionName === "Unknown") {
+          const sectionIdStr = String(c.sectionId || "");
+          if (sectionIdStr && sections && Array.isArray(sections)) {
+            const section = sections.find((s: any) => String(s._id) === sectionIdStr);
+            if (section) {
+              sectionName = section.name;
+              sectionGrade = section.grade || "";
+            }
+          }
+        }
+        // Get subject name from curriculum if available
+        let subjectName = c.subjectName;
+        if (!subjectName || subjectName === "Lecture") {
+          const lessonIdStr = String(c.lessonId || "");
+          if (lessonIdStr && curriculum && Array.isArray(curriculum)) {
+            outerLoop: for (const subject of curriculum) {
+              for (const unit of subject.units || []) {
+                const lesson = (unit.lessons || []).find((l: any) => String(l._id) === lessonIdStr);
+                if (lesson) {
+                  subjectName = subject.name;
+                  break outerLoop;
+                }
+              }
+            }
+          }
+        }
+        return { ...c, sectionName: sectionName || "Unknown", sectionGrade, subjectName: subjectName || "Lecture" };
+      });
+
+      const enrichedSectionConflicts = (sectionConflicts || []).map((c: any) => {
+        let teacherName = c.teacherName;
+        // If teacherName is missing or "Unknown", try to look it up client-side
+        if (!teacherName || teacherName === "Unknown") {
+          const teacherIdStr = String(c.teacherId || "");
+          if (teacherIdStr && teachers && Array.isArray(teachers)) {
+            const teacher = teachers.find((t: any) => String(t._id) === teacherIdStr);
+            if (teacher) {
+              teacherName = teacher.name;
+            }
+          }
+        }
+        // Get subject name from curriculum if available
+        let subjectName = c.subjectName;
+        if (!subjectName || subjectName === "Lecture") {
+          const lessonIdStr = String(c.lessonId || "");
+          if (lessonIdStr && curriculum && Array.isArray(curriculum)) {
+            outerLoop: for (const subject of curriculum) {
+              for (const unit of subject.units || []) {
+                const lesson = (unit.lessons || []).find((l: any) => String(l._id) === lessonIdStr);
+                if (lesson) {
+                  subjectName = subject.name;
+                  break outerLoop;
+                }
+              }
+            }
+          }
+        }
+        return { ...c, teacherName: teacherName || "Unknown", subjectName: subjectName || "Lecture" };
+      });
+
       setConflicts({
-        hasConflicts: (teacherConflicts?.length || 0) > 0 || (sectionConflicts?.length || 0) > 0,
-        teacherConflicts: teacherConflicts || [],
-        sectionConflicts: sectionConflicts || [],
+        hasConflicts: enrichedTeacherConflicts.length > 0 || enrichedSectionConflicts.length > 0,
+        teacherConflicts: enrichedTeacherConflicts,
+        sectionConflicts: enrichedSectionConflicts,
       });
     }
-  }, [teacherConflicts, sectionConflicts]);
+  }, [teacherConflicts, sectionConflicts, teachers, sections, curriculum]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
