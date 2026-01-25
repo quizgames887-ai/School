@@ -603,24 +603,72 @@ function ScheduleForm({
 
             {conflicts && (
               <div
-                className={`rounded-md p-3 ${
+                className={`rounded-lg p-4 ${
                   conflicts.hasConflicts
-                    ? "bg-red-50 text-red-800"
-                    : "bg-green-50 text-green-800"
+                    ? "bg-red-50 border border-red-200"
+                    : "bg-green-50 border border-green-200"
                 }`}
               >
                 {conflicts.hasConflicts ? (
-                  <div>
-                    <p className="font-medium">Conflicts detected:</p>
+                  <div className="space-y-3">
+                    <p className="font-semibold text-red-800">⚠️ Conflicts detected:</p>
+                    
                     {conflicts.teacherConflicts.length > 0 && (
-                      <p>Teacher has {conflicts.teacherConflicts.length} conflict(s)</p>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-red-700">
+                          Teacher already has {conflicts.teacherConflicts.length} lecture(s) at this time:
+                        </p>
+                        <ul className="text-sm text-red-700 space-y-1.5 ml-4">
+                          {conflicts.teacherConflicts.map((conflict: any, idx: number) => (
+                            <li key={idx} className="bg-red-100 rounded px-2 py-1">
+                              <span className="font-medium">{conflict.subjectName}</span>
+                              {" • "}
+                              <span>{conflict.sectionName}</span>
+                              {conflict.periodName && (
+                                <>
+                                  {" • "}
+                                  <span className="text-red-600">{conflict.periodName}</span>
+                                </>
+                              )}
+                              {" • "}
+                              <span className="text-xs">
+                                {conflict.startTime} - {conflict.endTime}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
+                    
                     {conflicts.sectionConflicts && conflicts.sectionConflicts.length > 0 && (
-                      <p>Section has {conflicts.sectionConflicts.length} conflict(s)</p>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-red-700">
+                          Section already has {conflicts.sectionConflicts.length} lecture(s) at this time:
+                        </p>
+                        <ul className="text-sm text-red-700 space-y-1.5 ml-4">
+                          {conflicts.sectionConflicts.map((conflict: any, idx: number) => (
+                            <li key={idx} className="bg-red-100 rounded px-2 py-1">
+                              <span className="font-medium">{conflict.subjectName}</span>
+                              {" • "}
+                              <span>with {conflict.teacherName}</span>
+                              {conflict.periodName && (
+                                <>
+                                  {" • "}
+                                  <span className="text-red-600">{conflict.periodName}</span>
+                                </>
+                              )}
+                              {" • "}
+                              <span className="text-xs">
+                                {conflict.startTime} - {conflict.endTime}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </div>
                 ) : (
-                  <p>No conflicts detected</p>
+                  <p className="text-green-800 font-medium">✓ No conflicts detected</p>
                 )}
               </div>
             )}

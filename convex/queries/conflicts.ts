@@ -109,6 +109,8 @@ export const checkSectionConflict = query({
   },
 });
 
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 export const checkAllConflicts = query({
   args: {
     teacherId: v.id("teachers"),
@@ -126,7 +128,7 @@ export const checkAllConflicts = query({
       .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId))
       .collect();
 
-    const teacherConflicts = teacherLectures.filter((lecture) => {
+    const teacherConflictsRaw = teacherLectures.filter((lecture) => {
       if (lecture.academicYear !== args.academicYear) return false;
       if (lecture.dayOfWeek !== args.dayOfWeek) return false;
       if (args.excludeLectureId && lecture._id === args.excludeLectureId) {
@@ -150,7 +152,7 @@ export const checkAllConflicts = query({
     const allLectures = await ctx.db.query("lectures").collect();
     const sectionLectures = allLectures.filter((lecture) => lecture.sectionId === args.sectionId);
 
-    const sectionConflicts = sectionLectures.filter((lecture) => {
+    const sectionConflictsRaw = sectionLectures.filter((lecture) => {
       if (lecture.academicYear !== args.academicYear) return false;
       if (lecture.dayOfWeek !== args.dayOfWeek) return false;
       if (args.excludeLectureId && lecture._id === args.excludeLectureId) {
@@ -168,6 +170,98 @@ export const checkAllConflicts = query({
       
       return false;
     });
+
+    // Enrich teacher conflicts with details
+    const teacherConflicts = await Promise.all(
+      teacherConflictsRaw.map(async (lecture) => {
+        // Get section info
+        let sectionName = "Unknown";
+        if (lecture.sectionId) {
+          const section = await ctx.db.get(lecture.sectionId);
+          if (section) {
+            sectionName = `${section.name} - ${section.grade}`;
+          }
+        }
+        
+        // Get lesson/subject info
+        let subjectName = "Unknown";
+        if (lecture.lessonId) {
+          const lesson = await ctx.db.get(lecture.lessonId);
+          if (lesson && lesson.unitId) {
+            const unit = await ctx.db.get(lesson.unitId);
+            if (unit && unit.subjectId) {
+              const subject = await ctx.db.get(unit.subjectId);
+              if (subject) {
+                subjectName = subject.name;
+              }
+            }
+          }
+        }
+
+        // Get period info
+        let periodName = "";
+        if (lecture.periodId) {
+          const period = await ctx.db.get(lecture.periodId);
+          if (period) {
+            periodName = period.name;
+          }
+        }
+
+        return {
+          ...lecture,
+          sectionName,
+          subjectName,
+          periodName,
+          dayName: DAYS[lecture.dayOfWeek] || "Unknown",
+        };
+      })
+    );
+
+    // Enrich section conflicts with details
+    const sectionConflicts = await Promise.all(
+      sectionConflictsRaw.map(async (lecture) => {
+        // Get teacher info
+        let teacherName = "Unknown";
+        if (lecture.teacherId) {
+          const teacher = await ctx.db.get(lecture.teacherId);
+          if (teacher) {
+            teacherName = teacher.name;
+          }
+        }
+        
+        // Get lesson/subject info
+        let subjectName = "Unknown";
+        if (lecture.lessonId) {
+          const lesson = await ctx.db.get(lecture.lessonId);
+          if (lesson && lesson.unitId) {
+            const unit = await ctx.db.get(lesson.unitId);
+            if (unit && unit.subjectId) {
+              const subject = await ctx.db.get(unit.subjectId);
+              if (subject) {
+                subjectName = subject.name;
+              }
+            }
+          }
+        }
+
+        // Get period info
+        let periodName = "";
+        if (lecture.periodId) {
+          const period = await ctx.db.get(lecture.periodId);
+          if (period) {
+            periodName = period.name;
+          }
+        }
+
+        return {
+          ...lecture,
+          teacherName,
+          subjectName,
+          periodName,
+          dayName: DAYS[lecture.dayOfWeek] || "Unknown",
+        };
+      })
+    );
 
     return {
       teacherConflicts,
