@@ -256,9 +256,6 @@ export default function ClassSessionsPage() {
                             Date
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                            Day
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                             Time
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
@@ -295,11 +292,6 @@ export default function ClassSessionsPage() {
                           <td className="px-4 py-3 whitespace-nowrap">
                             <span className="text-sm text-gray-600">
                               {new Date(session.date).toLocaleDateString()}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {new Date(session.date).toLocaleDateString("en-US", { weekday: "long" })}
                             </span>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
@@ -409,11 +401,7 @@ function ClassSessionForm({
 
   const handlePeriodChange = (selectedPeriodId: string) => {
     setPeriodId(selectedPeriodId);
-    const period = periods?.find((p: any) => p._id === selectedPeriodId);
-    if (period && !period.isBreak) {
-      setTime(period.startTime);
-      setEndTime(period.endTime);
-    }
+    // Period is independent - don't auto-set time
   };
 
   // Get available subjects (curriculum) - filter by teacher's subjects if teacher is selected
@@ -595,11 +583,6 @@ function ClassSessionForm({
                     </option>
                   ))}
               </select>
-              {periodId && (
-                <p className="mt-1 text-xs text-gray-500">
-                  Time will be set automatically from period
-                </p>
-              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
