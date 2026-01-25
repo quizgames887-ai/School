@@ -8,8 +8,7 @@ import { TeacherScheduleView } from "@/components/TeacherScheduleView";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { useTranslation } from "@/lib/translation-context";
-import { AlertCircle, Globe } from "lucide-react";
-import { toast } from "@/components/ui/toast";
+import { AlertCircle, Globe, BookOpen } from "lucide-react";
 
 export default function TeacherSchedulePage() {
   const { user } = useAuth();
@@ -17,7 +16,6 @@ export default function TeacherSchedulePage() {
   const { t, language } = useTranslation();
   const lang = language; // Use global language setting
   const setLanguage = useMutation(api.mutations.translations.setLanguage);
-  const deleteLecture = useMutation(api.mutations.lectures.deleteLecture);
 
   const handleLanguageChange = async (newLang: "en" | "ar") => {
     try {
@@ -96,6 +94,18 @@ export default function TeacherSchedulePage() {
               </p>
             </div>
             <div className="flex items-center gap-4">
+              {/* Total Lectures */}
+              <div className="flex items-center gap-2 px-4 py-2 bg-green-50 rounded-lg border border-green-200">
+                <BookOpen className="h-5 w-5 text-green-600" />
+                <div className="text-center">
+                  <div className="text-lg font-bold text-green-700">
+                    {lectures?.length || 0}
+                  </div>
+                  <div className="text-[10px] text-green-600 font-medium">
+                    {lang === "ar" ? "حصة أسبوعياً" : "Lectures/Week"}
+                  </div>
+                </div>
+              </div>
               <div className="flex items-center gap-2">
                 <Globe className="h-4 w-4 text-gray-500" />
                 <select
@@ -125,15 +135,6 @@ export default function TeacherSchedulePage() {
                 lectures={lectures}
                 teacherName={teacher.name}
                 lang={lang}
-                isAdmin={true}
-                onDeleteLecture={async (lectureId) => {
-                  try {
-                    await deleteLecture({ id: lectureId });
-                    toast.success(lang === "ar" ? "تم حذف الحصة بنجاح" : "Lecture deleted successfully");
-                  } catch (error) {
-                    toast.error(lang === "ar" ? "فشل في حذف الحصة" : "Failed to delete lecture");
-                  }
-                }}
               />
             ) : (
               <div className="text-center py-12">
