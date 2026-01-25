@@ -254,15 +254,10 @@ export default function ClassSessionsPage() {
         <Card className="overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white py-4">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg font-bold">
-                  {selectedSectionData?.grade} - {selectedSectionData?.name}
-                </CardTitle>
-                <p className="text-blue-100 text-sm">
-                  {weekDates[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })} - {weekDates[6].toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                </p>
-              </div>
-              <div className="text-right text-sm text-blue-100">
+              <CardTitle className="text-lg font-bold">
+                {selectedSectionData?.grade} - {selectedSectionData?.name}
+              </CardTitle>
+              <div className="text-sm text-blue-100">
                 {selectedSectionData?.numberOfStudents} students
               </div>
             </div>
