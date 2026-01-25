@@ -246,19 +246,6 @@ export default function ClassSessionsPage() {
             </select>
           </div>
 
-          {selectedSection && (
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={goToPreviousWeek}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={goToCurrentWeek}>
-                Today
-              </Button>
-              <Button variant="outline" size="sm" onClick={goToNextWeek}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
         </div>
       </Card>
 
