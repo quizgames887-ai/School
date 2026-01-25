@@ -647,7 +647,13 @@ function ScheduleForm({
             )}
 
             <div className="flex gap-2">
-              <Button type="submit">{lectureId ? "Update" : "Create"}</Button>
+              <Button 
+                type="submit" 
+                disabled={conflicts?.hasConflicts}
+                className={conflicts?.hasConflicts ? "opacity-50 cursor-not-allowed" : ""}
+              >
+                {lectureId ? "Update" : "Create"}
+              </Button>
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
