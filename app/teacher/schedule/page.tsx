@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { useTranslation } from "@/lib/translation-context";
 import { AlertCircle, Globe } from "lucide-react";
+import { toast } from "@/components/ui/toast";
 
 export default function TeacherSchedulePage() {
   const { user } = useAuth();
@@ -16,6 +17,7 @@ export default function TeacherSchedulePage() {
   const { t, language } = useTranslation();
   const lang = language; // Use global language setting
   const setLanguage = useMutation(api.mutations.translations.setLanguage);
+  const deleteLecture = useMutation(api.mutations.lectures.deleteLecture);
 
   const handleLanguageChange = async (newLang: "en" | "ar") => {
     try {
@@ -123,6 +125,15 @@ export default function TeacherSchedulePage() {
                 lectures={lectures}
                 teacherName={teacher.name}
                 lang={lang}
+                isAdmin={true}
+                onDeleteLecture={async (lectureId) => {
+                  try {
+                    await deleteLecture({ id: lectureId });
+                    toast.success(lang === "ar" ? "تم حذف الحصة بنجاح" : "Lecture deleted successfully");
+                  } catch (error) {
+                    toast.error(lang === "ar" ? "فشل في حذف الحصة" : "Failed to delete lecture");
+                  }
+                }}
               />
             ) : (
               <div className="text-center py-12">
