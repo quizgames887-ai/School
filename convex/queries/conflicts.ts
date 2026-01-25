@@ -151,7 +151,7 @@ export const checkAllConflicts = query({
     // Enrich teacher conflicts with section details
     const teacherConflicts = await Promise.all(
       teacherConflictsRaw.map(async (lecture) => {
-        let sectionName = "Unknown";
+        let sectionName = "Unknown Section";
         let sectionGrade = "";
         if (lecture.sectionId) {
           const section = await ctx.db.get(lecture.sectionId);
@@ -159,17 +159,27 @@ export const checkAllConflicts = query({
             sectionName = section.name;
             sectionGrade = section.grade;
           }
+        } else if (lecture.classId) {
+          // Fallback to old class data
+          const classData = await ctx.db.get(lecture.classId);
+          if (classData) {
+            sectionName = classData.name;
+            sectionGrade = classData.grade || "";
+          }
         }
         // Get subject/lesson info
-        let subjectName = "Unknown";
+        let subjectName = "";
         if (lecture.lessonId) {
           const lesson = await ctx.db.get(lecture.lessonId);
-          if (lesson && lesson.unitId) {
-            const unit = await ctx.db.get(lesson.unitId);
-            if (unit && unit.subjectId) {
-              const subject = await ctx.db.get(unit.subjectId);
-              if (subject) {
-                subjectName = subject.name;
+          if (lesson) {
+            subjectName = lesson.name || "";
+            if (lesson.unitId) {
+              const unit = await ctx.db.get(lesson.unitId);
+              if (unit && unit.subjectId) {
+                const subject = await ctx.db.get(unit.subjectId);
+                if (subject) {
+                  subjectName = subject.name;
+                }
               }
             }
           }
@@ -178,7 +188,7 @@ export const checkAllConflicts = query({
           ...lecture,
           sectionName,
           sectionGrade,
-          subjectName,
+          subjectName: subjectName || "Lecture",
           dayName: dayNames[lecture.dayOfWeek] || "Unknown",
         };
       })
@@ -210,7 +220,7 @@ export const checkAllConflicts = query({
     // Enrich section conflicts with teacher details
     const sectionConflicts = await Promise.all(
       sectionConflictsRaw.map(async (lecture) => {
-        let teacherName = "Unknown";
+        let teacherName = "Unknown Teacher";
         if (lecture.teacherId) {
           const teacher = await ctx.db.get(lecture.teacherId);
           if (teacher) {
@@ -218,15 +228,18 @@ export const checkAllConflicts = query({
           }
         }
         // Get subject/lesson info
-        let subjectName = "Unknown";
+        let subjectName = "";
         if (lecture.lessonId) {
           const lesson = await ctx.db.get(lecture.lessonId);
-          if (lesson && lesson.unitId) {
-            const unit = await ctx.db.get(lesson.unitId);
-            if (unit && unit.subjectId) {
-              const subject = await ctx.db.get(unit.subjectId);
-              if (subject) {
-                subjectName = subject.name;
+          if (lesson) {
+            subjectName = lesson.name || "";
+            if (lesson.unitId) {
+              const unit = await ctx.db.get(lesson.unitId);
+              if (unit && unit.subjectId) {
+                const subject = await ctx.db.get(unit.subjectId);
+                if (subject) {
+                  subjectName = subject.name;
+                }
               }
             }
           }
@@ -234,7 +247,7 @@ export const checkAllConflicts = query({
         return {
           ...lecture,
           teacherName,
-          subjectName,
+          subjectName: subjectName || "Lecture",
           dayName: dayNames[lecture.dayOfWeek] || "Unknown",
         };
       })

@@ -618,9 +618,9 @@ function ScheduleForm({
                         <ul className="list-disc ml-4 text-xs space-y-1 mt-1">
                           {conflicts.teacherConflicts.map((c: any, i: number) => (
                             <li key={i}>
-                              <span className="font-medium">{c.subjectName}</span> with{" "}
-                              <span className="font-medium">{c.sectionName}</span>
-                              {c.sectionGrade && ` (${c.sectionGrade})`} - {c.dayName} {c.startTime}-{c.endTime}
+                              <span className="font-medium">{c.subjectName || "Subject"}</span> with Section{" "}
+                              <span className="font-medium">{c.sectionName || "Unknown"}</span>
+                              {c.sectionGrade && ` (${c.sectionGrade})`} - {c.startTime}-{c.endTime}
                             </li>
                           ))}
                         </ul>
@@ -632,8 +632,8 @@ function ScheduleForm({
                         <ul className="list-disc ml-4 text-xs space-y-1 mt-1">
                           {conflicts.sectionConflicts.map((c: any, i: number) => (
                             <li key={i}>
-                              <span className="font-medium">{c.subjectName}</span> with Teacher{" "}
-                              <span className="font-medium">{c.teacherName}</span> - {c.dayName} {c.startTime}-{c.endTime}
+                              <span className="font-medium">{c.subjectName || "Subject"}</span> with Teacher{" "}
+                              <span className="font-medium">{c.teacherName || "Unknown"}</span> - {c.startTime}-{c.endTime}
                             </li>
                           ))}
                         </ul>
