@@ -17,11 +17,27 @@ export default function PeriodsPage() {
   const [showForm, setShowForm] = useState(false);
   const [filterType, setFilterType] = useState<string>("");
   const createPeriod = useMutation(api.mutations.periods.create);
+  const deletePeriodMutation = useMutation(api.mutations.periods.deletePeriod);
 
-  // Sort and filter periods - must be before any conditional returns
+  // Sort, deduplicate, and filter periods - must be before any conditional returns
   const sortedPeriods = useMemo(() => {
     if (!periods) return [];
-    let filtered = [...periods].sort((a, b) => a.order - b.order);
+    
+    // Remove duplicates by order (keep the first one encountered for each order)
+    const seen = new Map<number, any>();
+    const duplicateIds = new Set<string>();
+    
+    periods.forEach((p) => {
+      if (seen.has(p.order)) {
+        // This is a duplicate
+        duplicateIds.add(p._id);
+      } else {
+        seen.set(p.order, p);
+      }
+    });
+    
+    // Get unique periods sorted by order
+    let filtered = Array.from(seen.values()).sort((a, b) => a.order - b.order);
     
     // Filter by type (break/class)
     if (filterType === "break") {
@@ -32,6 +48,16 @@ export default function PeriodsPage() {
     
     return filtered;
   }, [periods, filterType]);
+  
+  // Count duplicates for warning
+  const duplicateCount = useMemo(() => {
+    if (!periods) return 0;
+    const orderCounts = new Map<number, number>();
+    periods.forEach((p) => {
+      orderCounts.set(p.order, (orderCounts.get(p.order) || 0) + 1);
+    });
+    return periods.length - orderCounts.size;
+  }, [periods]);
 
   if (!periods) {
     return (
@@ -167,6 +193,50 @@ export default function PeriodsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Warning for duplicates */}
+      {duplicateCount > 0 && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-orange-900">Duplicate Periods Detected</h3>
+                <p className="text-sm text-orange-700">
+                  Found {duplicateCount} duplicate period(s) with the same order number. 
+                  Click &quot;Clean Duplicates&quot; to remove them.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                if (!confirm(`This will delete ${duplicateCount} duplicate period(s). Continue?`)) return;
+                // Find and delete duplicates
+                const orderSeen = new Set<number>();
+                for (const p of periods || []) {
+                  if (orderSeen.has(p.order)) {
+                    try {
+                      await deletePeriodMutation({ id: p._id as any });
+                    } catch (e) {
+                      console.error("Error deleting duplicate:", e);
+                    }
+                  } else {
+                    orderSeen.add(p.order);
+                  }
+                }
+                toast.success(`Cleaned ${duplicateCount} duplicate period(s)`);
+              }}
+              className="border-orange-300 text-orange-700 hover:bg-orange-100"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clean Duplicates
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {showForm && (
         <PeriodForm
