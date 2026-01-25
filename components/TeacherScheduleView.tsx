@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, Users } from "lucide-react";
+import { Clock, Users, X } from "lucide-react";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 
 interface Period {
@@ -40,7 +40,9 @@ interface TeacherScheduleViewProps {
   lectures: Lecture[];
   teacherName?: string;
   lang?: "ar" | "en";
+  isAdmin?: boolean;
   onLectureClick?: (lecture: Lecture) => void;
+  onDeleteLecture?: (lectureId: Id<"lectures">) => void;
 }
 
 const DAYS = {
@@ -53,8 +55,23 @@ export function TeacherScheduleView({
   lectures,
   teacherName,
   lang = "en",
+  isAdmin = false,
   onLectureClick,
+  onDeleteLecture,
 }: TeacherScheduleViewProps) {
+  const [deletingId, setDeletingId] = useState<Id<"lectures"> | null>(null);
+
+  const handleDelete = async (e: React.MouseEvent, lectureId: Id<"lectures">) => {
+    e.stopPropagation();
+    if (confirm(lang === "ar" ? "هل أنت متأكد من حذف هذه الحصة؟" : "Are you sure you want to delete this lecture?")) {
+      setDeletingId(lectureId);
+      try {
+        await onDeleteLecture?.(lectureId);
+      } finally {
+        setDeletingId(null);
+      }
+    }
+  };
   // Sort periods by order
   const sortedPeriods = useMemo(() => {
     return [...periods].sort((a, b) => a.order - b.order).filter((p) => !p.isBreak);
@@ -201,14 +218,25 @@ export function TeacherScheduleView({
                         {cellLectures.map((lecture) => (
                           <div
                             key={lecture._id}
-                            className={`rounded p-1.5 text-[8px] ${
+                            className={`rounded p-1.5 text-[8px] relative group ${
                               onLectureClick
                                 ? "cursor-pointer bg-blue-500 text-white hover:bg-blue-600"
                                 : "bg-blue-50 text-blue-900 border border-blue-200"
-                            }`}
+                            } ${deletingId === lecture._id ? "opacity-50" : ""}`}
                             onClick={() => onLectureClick?.(lecture)}
                             title={`${lecture.subjectName || "Unknown"} - ${lecture.sectionName || lecture.className || "Unknown"} - ${lecture.sectionGrade || ""}`}
                           >
+                            {/* Delete button for admin */}
+                            {isAdmin && onDeleteLecture && (
+                              <button
+                                onClick={(e) => handleDelete(e, lecture._id)}
+                                disabled={deletingId === lecture._id}
+                                className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-sm"
+                                title={lang === "ar" ? "حذف" : "Delete"}
+                              >
+                                <X className="h-2.5 w-2.5" />
+                              </button>
+                            )}
                             {/* Subject Name */}
                             <div className="font-bold text-[8px] leading-tight">
                               {lecture.subjectName || "Unknown"}

@@ -42,6 +42,9 @@ export default function SchedulePage() {
   
   // Check if sections exist for the academic year
   const sectionsForYear = useQuery(api.queries.sections.getByAcademicYear, { academicYear });
+  
+  // Delete lecture mutation for admin
+  const deleteLecture = useMutation(api.mutations.lectures.deleteLecture);
 
   if (!lectures || !teachers || !periods || !subjects) {
     return (
@@ -130,7 +133,11 @@ export default function SchedulePage() {
                     lectures={teacherLectures}
                     teacherName={selectedTeacher?.name}
                     lang="en"
+                    isAdmin={true}
                     onLectureClick={(lecture) => setEditingLecture(lecture._id)}
+                    onDeleteLecture={async (lectureId) => {
+                      await deleteLecture({ id: lectureId });
+                    }}
                   />
                 ) : selectedTeacherId ? (
                   <div className="flex items-center justify-center py-16">
@@ -243,6 +250,7 @@ function ScheduleForm({
   );
   const createLecture = useMutation(api.mutations.lectures.create);
   const updateLecture = useMutation(api.mutations.lectures.update);
+  const deleteLectureMutation = useMutation(api.mutations.lectures.deleteLecture);
   const lecture = useQuery(
     api.queries.lectures.getById,
     lectureId ? { id: lectureId as any } : "skip"
