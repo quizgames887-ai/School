@@ -275,22 +275,14 @@ export default function ClassSessionsPage() {
                     <th className="border-b border-r p-3 text-left text-xs font-semibold text-gray-600 w-24">
                       Period
                     </th>
-                    {weekDates.map((date, idx) => {
-                      const isToday = formatDateISO(date) === formatDateISO(new Date());
-                      return (
-                        <th 
-                          key={idx} 
-                          className={`border-b p-3 text-center text-xs font-semibold min-w-[120px] ${
-                            isToday ? "bg-blue-50 text-blue-700" : "text-gray-600"
-                          }`}
-                        >
-                          <div className="font-bold">{DAY_NAMES[idx]}</div>
-                          <div className={`text-xs ${isToday ? "text-blue-600" : "text-gray-400"}`}>
-                            {date.getDate()}/{date.getMonth() + 1}
-                          </div>
-                        </th>
-                      );
-                    })}
+                    {DAY_NAMES.map((day, idx) => (
+                      <th 
+                        key={idx} 
+                        className="border-b p-3 text-center text-xs font-semibold min-w-[120px] text-gray-600"
+                      >
+                        <div className="font-bold">{day}</div>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -300,14 +292,13 @@ export default function ClassSessionsPage() {
                         <div className="text-sm font-medium text-gray-900">{period.name}</div>
                         <div className="text-xs text-gray-500">{period.startTime}-{period.endTime}</div>
                       </td>
-                      {weekDates.map((date, dayIdx) => {
+                      {DAY_NAMES.map((_, dayIdx) => {
                         const sessions = weekSessions[period._id]?.[dayIdx] || [];
-                        const isToday = formatDateISO(date) === formatDateISO(new Date());
                         
                         return (
                           <td 
                             key={dayIdx} 
-                            className={`border-b p-1 align-top ${isToday ? "bg-blue-50/30" : ""}`}
+                            className="border-b p-1 align-top"
                           >
                             {sessions.length > 0 ? (
                               sessions.map((session: any) => (
