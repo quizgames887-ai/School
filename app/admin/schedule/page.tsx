@@ -603,64 +603,37 @@ function ScheduleForm({
 
             {conflicts && (
               <div
-                className={`rounded-lg p-4 ${
+                className={`rounded-md p-3 ${
                   conflicts.hasConflicts
-                    ? "bg-red-50 border border-red-200"
-                    : "bg-green-50 border border-green-200"
+                    ? "bg-red-50 text-red-800 border border-red-200"
+                    : "bg-green-50 text-green-800 border border-green-200"
                 }`}
               >
                 {conflicts.hasConflicts ? (
-                  <div className="space-y-3">
-                    <p className="font-semibold text-red-800">⚠️ Conflicts detected:</p>
-                    
+                  <div className="space-y-2">
+                    <p className="font-semibold text-red-900">⚠️ Conflicts detected:</p>
                     {conflicts.teacherConflicts.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-red-700">
-                          Teacher already has {conflicts.teacherConflicts.length} lecture(s) at this time:
-                        </p>
-                        <ul className="text-sm text-red-700 space-y-1.5 ml-4">
-                          {conflicts.teacherConflicts.map((conflict: any, idx: number) => (
-                            <li key={idx} className="bg-red-100 rounded px-2 py-1">
-                              <span className="font-medium">{conflict.subjectName}</span>
-                              {" • "}
-                              <span>{conflict.sectionName}</span>
-                              {conflict.periodName && (
-                                <>
-                                  {" • "}
-                                  <span className="text-red-600">{conflict.periodName}</span>
-                                </>
-                              )}
-                              {" • "}
-                              <span className="text-xs">
-                                {conflict.startTime} - {conflict.endTime}
-                              </span>
+                      <div className="ml-2">
+                        <p className="font-medium text-sm">Teacher conflicts ({conflicts.teacherConflicts.length}):</p>
+                        <ul className="list-disc ml-4 text-xs space-y-1 mt-1">
+                          {conflicts.teacherConflicts.map((c: any, i: number) => (
+                            <li key={i}>
+                              <span className="font-medium">{c.subjectName}</span> with{" "}
+                              <span className="font-medium">{c.sectionName}</span>
+                              {c.sectionGrade && ` (${c.sectionGrade})`} - {c.dayName} {c.startTime}-{c.endTime}
                             </li>
                           ))}
                         </ul>
                       </div>
                     )}
-                    
                     {conflicts.sectionConflicts && conflicts.sectionConflicts.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-red-700">
-                          Section already has {conflicts.sectionConflicts.length} lecture(s) at this time:
-                        </p>
-                        <ul className="text-sm text-red-700 space-y-1.5 ml-4">
-                          {conflicts.sectionConflicts.map((conflict: any, idx: number) => (
-                            <li key={idx} className="bg-red-100 rounded px-2 py-1">
-                              <span className="font-medium">{conflict.subjectName}</span>
-                              {" • "}
-                              <span>with {conflict.teacherName}</span>
-                              {conflict.periodName && (
-                                <>
-                                  {" • "}
-                                  <span className="text-red-600">{conflict.periodName}</span>
-                                </>
-                              )}
-                              {" • "}
-                              <span className="text-xs">
-                                {conflict.startTime} - {conflict.endTime}
-                              </span>
+                      <div className="ml-2">
+                        <p className="font-medium text-sm">Section conflicts ({conflicts.sectionConflicts.length}):</p>
+                        <ul className="list-disc ml-4 text-xs space-y-1 mt-1">
+                          {conflicts.sectionConflicts.map((c: any, i: number) => (
+                            <li key={i}>
+                              <span className="font-medium">{c.subjectName}</span> with Teacher{" "}
+                              <span className="font-medium">{c.teacherName}</span> - {c.dayName} {c.startTime}-{c.endTime}
                             </li>
                           ))}
                         </ul>
@@ -668,7 +641,7 @@ function ScheduleForm({
                     )}
                   </div>
                 ) : (
-                  <p className="text-green-800 font-medium">✓ No conflicts detected</p>
+                  <p className="text-green-700">✓ No conflicts detected</p>
                 )}
               </div>
             )}
