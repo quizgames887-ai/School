@@ -304,11 +304,7 @@ export default function ClassSessionsPage() {
                               sessions.map((session: any) => (
                                 <div 
                                   key={session._id}
-                                  className="group relative p-2 rounded-lg bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 mb-1 hover:shadow-md transition-shadow cursor-pointer"
-                                  onClick={() => {
-                                    setEditingSession(session._id);
-                                    setShowForm(true);
-                                  }}
+                                  className="p-2 rounded-lg bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 mb-1"
                                 >
                                   <div className="text-sm font-semibold text-indigo-900 truncate">
                                     {session.curriculumName}
@@ -316,15 +312,6 @@ export default function ClassSessionsPage() {
                                   <div className="text-xs text-gray-600 truncate">
                                     {session.teacherName}
                                   </div>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDelete(session._id);
-                                    }}
-                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-1 rounded bg-red-100 hover:bg-red-200 text-red-600 transition-opacity"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
                                 </div>
                               ))
                             ) : (
