@@ -69,24 +69,15 @@ export const checkSectionConflict = query({
     academicYear: v.string(),
   },
   handler: async (ctx, args) => {
-    // Query all lectures and filter by sectionId (handles optional sectionId in schema)
+    // Query all lectures and filter by exact sectionId match only
     const allLectures = await ctx.db.query("lectures").collect();
+    
+    // Only match lectures with the exact sectionId - don't include unmigrated data
     const lectures = allLectures.filter((lecture) => 
-      lecture.sectionId === args.sectionId || 
-      // For backward compatibility: if lecture has classId, check if it matches a section
-      (lecture.classId && lecture.sectionId === undefined)
+      lecture.sectionId === args.sectionId
     );
 
     const conflicts = lectures.filter((lecture) => {
-      // Match by sectionId (new data) or check if classId matches section (old data)
-      const matchesSection = lecture.sectionId === args.sectionId;
-      if (!matchesSection && lecture.classId) {
-        // For old data with classId, we'd need to check if class matches section
-        // For now, we'll only check exact sectionId matches
-        return false;
-      }
-      if (!matchesSection) return false;
-      
       if (lecture.academicYear !== args.academicYear) return false;
       if (lecture.dayOfWeek !== args.dayOfWeek) return false;
       if (args.excludeLectureId && lecture._id === args.excludeLectureId) {
