@@ -67,6 +67,8 @@ export const create = mutation({
       const allLectures = await ctx.db.query("lectures").collect();
       const sectionLectures = allLectures.filter((lecture) => lecture.sectionId === args.sectionId);
       
+      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      
       const teacherConflicts = teacherLectures.filter(
         (lecture) =>
           lecture.recurring &&
@@ -94,9 +96,40 @@ export const create = mutation({
       );
       
       if (teacherConflicts.length > 0 || sectionConflicts.length > 0) {
-        throw new Error(
-          "Scheduling conflict detected. Teacher or section is already scheduled at this time."
-        );
+        // Build detailed error message
+        const errorParts: string[] = [];
+        
+        if (teacherConflicts.length > 0) {
+          const conflict = teacherConflicts[0];
+          // Get section info for the conflict
+          let conflictSectionName = "another section";
+          if (conflict.sectionId) {
+            const section = await ctx.db.get(conflict.sectionId);
+            if (section) {
+              conflictSectionName = `${section.name} (${section.grade})`;
+            }
+          }
+          errorParts.push(
+            `Teacher is already scheduled for ${conflictSectionName} on ${dayNames[conflict.dayOfWeek]} at ${conflict.startTime}-${conflict.endTime}`
+          );
+        }
+        
+        if (sectionConflicts.length > 0) {
+          const conflict = sectionConflicts[0];
+          // Get teacher info for the conflict
+          let conflictTeacherName = "another teacher";
+          if (conflict.teacherId) {
+            const teacher = await ctx.db.get(conflict.teacherId);
+            if (teacher) {
+              conflictTeacherName = teacher.name;
+            }
+          }
+          errorParts.push(
+            `Section is already scheduled with ${conflictTeacherName} on ${dayNames[conflict.dayOfWeek]} at ${conflict.startTime}-${conflict.endTime}`
+          );
+        }
+        
+        throw new Error(`Scheduling conflict: ${errorParts.join(". ")}`);
       }
     }
     
@@ -186,6 +219,8 @@ export const update = mutation({
       const allLectures = await ctx.db.query("lectures").collect();
       const sectionLectures = allLectures.filter((lecture) => lecture.sectionId === sectionId);
       
+      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      
       const teacherConflicts = teacherLectures.filter(
         (lecture) =>
           lecture._id !== id &&
@@ -205,9 +240,40 @@ export const update = mutation({
       );
       
       if (teacherConflicts.length > 0 || sectionConflicts.length > 0) {
-        throw new Error(
-          "Scheduling conflict detected. Teacher or section is already scheduled at this time."
-        );
+        // Build detailed error message
+        const errorParts: string[] = [];
+        
+        if (teacherConflicts.length > 0) {
+          const conflict = teacherConflicts[0];
+          // Get section info for the conflict
+          let conflictSectionName = "another section";
+          if (conflict.sectionId) {
+            const section = await ctx.db.get(conflict.sectionId);
+            if (section) {
+              conflictSectionName = `${section.name} (${section.grade})`;
+            }
+          }
+          errorParts.push(
+            `Teacher is already scheduled for ${conflictSectionName} on ${dayNames[conflict.dayOfWeek]} at ${conflict.startTime}-${conflict.endTime}`
+          );
+        }
+        
+        if (sectionConflicts.length > 0) {
+          const conflict = sectionConflicts[0];
+          // Get teacher info for the conflict
+          let conflictTeacherName = "another teacher";
+          if (conflict.teacherId) {
+            const teacher = await ctx.db.get(conflict.teacherId);
+            if (teacher) {
+              conflictTeacherName = teacher.name;
+            }
+          }
+          errorParts.push(
+            `Section is already scheduled with ${conflictTeacherName} on ${dayNames[conflict.dayOfWeek]} at ${conflict.startTime}-${conflict.endTime}`
+          );
+        }
+        
+        throw new Error(`Scheduling conflict: ${errorParts.join(". ")}`);
       }
     }
     
