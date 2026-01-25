@@ -347,9 +347,6 @@ function ScheduleForm({
   // Update conflicts state when queries change (real-time)
   useEffect(() => {
     if (teacherConflicts !== undefined || sectionConflicts !== undefined) {
-      // #region agent log H6-H9
-      fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'schedule/page.tsx:conflictsEffect',message:'Raw conflict query results',data:{teacherConflictsCount:teacherConflicts?.length||0,sectionConflictsCount:sectionConflicts?.length||0,teacherConflictsSample:teacherConflicts?.slice(0,2)?.map((c:any)=>({sectionId:c.sectionId,sectionName:c.sectionName,lessonId:c.lessonId,subjectName:c.subjectName,startTime:c.startTime,endTime:c.endTime})),sectionConflictsSample:sectionConflicts?.slice(0,2)?.map((c:any)=>({teacherId:c.teacherId,teacherName:c.teacherName,lessonId:c.lessonId,subjectName:c.subjectName,startTime:c.startTime,endTime:c.endTime}))},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H6-H9'})}).catch(()=>{});
-      // #endregion
       setConflicts({
         hasConflicts: (teacherConflicts?.length || 0) > 0 || (sectionConflicts?.length || 0) > 0,
         teacherConflicts: teacherConflicts || [],
