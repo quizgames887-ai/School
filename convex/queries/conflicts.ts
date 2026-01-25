@@ -30,12 +30,14 @@ export const checkTeacherConflict = query({
     academicYear: v.string(),
   },
   handler: async (ctx, args) => {
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    
     const lectures = await ctx.db
       .query("lectures")
       .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId))
       .collect();
 
-    const conflicts = lectures.filter((lecture) => {
+    const conflictsRaw = lectures.filter((lecture) => {
       if (lecture.academicYear !== args.academicYear) return false;
       if (lecture.dayOfWeek !== args.dayOfWeek) return false;
       if (args.excludeLectureId && lecture._id === args.excludeLectureId) {
@@ -55,6 +57,52 @@ export const checkTeacherConflict = query({
       return false;
     });
 
+    // Enrich conflicts with section and subject names
+    const conflicts = await Promise.all(
+      conflictsRaw.map(async (lecture) => {
+        let sectionName = "Unknown";
+        let sectionGrade = "";
+        if (lecture.sectionId) {
+          const section = await ctx.db.get(lecture.sectionId);
+          if (section) {
+            sectionName = section.name;
+            sectionGrade = section.grade;
+          }
+        } else if (lecture.classId) {
+          const classData = await ctx.db.get(lecture.classId);
+          if (classData) {
+            sectionName = classData.name;
+            sectionGrade = classData.grade || "";
+          }
+        }
+        
+        let subjectName = "";
+        if (lecture.lessonId) {
+          const lesson = await ctx.db.get(lecture.lessonId);
+          if (lesson) {
+            subjectName = lesson.name || "";
+            if (lesson.unitId) {
+              const unit = await ctx.db.get(lesson.unitId);
+              if (unit && unit.subjectId) {
+                const subject = await ctx.db.get(unit.subjectId);
+                if (subject) {
+                  subjectName = subject.name;
+                }
+              }
+            }
+          }
+        }
+        
+        return {
+          ...lecture,
+          sectionName,
+          sectionGrade,
+          subjectName: subjectName || "Lecture",
+          dayName: dayNames[lecture.dayOfWeek] || "Unknown",
+        };
+      })
+    );
+
     return conflicts;
   },
 });
@@ -69,6 +117,8 @@ export const checkSectionConflict = query({
     academicYear: v.string(),
   },
   handler: async (ctx, args) => {
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    
     // Query all lectures and filter by exact sectionId match only
     const allLectures = await ctx.db.query("lectures").collect();
     
@@ -77,7 +127,7 @@ export const checkSectionConflict = query({
       lecture.sectionId === args.sectionId
     );
 
-    const conflicts = lectures.filter((lecture) => {
+    const conflictsRaw = lectures.filter((lecture) => {
       if (lecture.academicYear !== args.academicYear) return false;
       if (lecture.dayOfWeek !== args.dayOfWeek) return false;
       if (args.excludeLectureId && lecture._id === args.excludeLectureId) {
@@ -96,6 +146,43 @@ export const checkSectionConflict = query({
       return false;
     });
 
+    // Enrich conflicts with teacher and subject names
+    const conflicts = await Promise.all(
+      conflictsRaw.map(async (lecture) => {
+        let teacherName = "Unknown";
+        if (lecture.teacherId) {
+          const teacher = await ctx.db.get(lecture.teacherId);
+          if (teacher) {
+            teacherName = teacher.name;
+          }
+        }
+        
+        let subjectName = "";
+        if (lecture.lessonId) {
+          const lesson = await ctx.db.get(lecture.lessonId);
+          if (lesson) {
+            subjectName = lesson.name || "";
+            if (lesson.unitId) {
+              const unit = await ctx.db.get(lesson.unitId);
+              if (unit && unit.subjectId) {
+                const subject = await ctx.db.get(unit.subjectId);
+                if (subject) {
+                  subjectName = subject.name;
+                }
+              }
+            }
+          }
+        }
+        
+        return {
+          ...lecture,
+          teacherName,
+          subjectName: subjectName || "Lecture",
+          dayName: dayNames[lecture.dayOfWeek] || "Unknown",
+        };
+      })
+    );
+
     return conflicts;
   },
 });
@@ -103,7 +190,7 @@ export const checkSectionConflict = query({
 export const checkAllConflicts = query({
   args: {
     teacherId: v.id("teachers"),
-    sectionId: v.id("sections"), // Changed from classId to sectionId
+    sectionId: v.id("sections"),
     dayOfWeek: v.number(),
     startTime: v.string(),
     endTime: v.string(),
@@ -246,7 +333,7 @@ export const checkAllConflicts = query({
 
     return {
       teacherConflicts,
-      sectionConflicts, // Changed from classConflicts to sectionConflicts
+      sectionConflicts,
       hasConflicts: teacherConflicts.length > 0 || sectionConflicts.length > 0,
     };
   },
