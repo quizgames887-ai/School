@@ -19,15 +19,6 @@ export function SessionTimeoutHandler() {
   const warningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const logoutTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Update last activity time on user interaction
-  const updateActivity = useCallback(() => {
-    lastActivityRef.current = Date.now();
-    // If warning is showing and user is active, extend session
-    if (showWarning) {
-      extendSession();
-    }
-  }, [showWarning]);
-
   // Extend session
   const extendSession = useCallback(async () => {
     setShowWarning(false);
@@ -48,6 +39,15 @@ export function SessionTimeoutHandler() {
     }
   }, []);
 
+  // Update last activity time on user interaction
+  const updateActivity = useCallback(() => {
+    lastActivityRef.current = Date.now();
+    // If warning is showing and user is active, extend session
+    if (showWarning) {
+      extendSession();
+    }
+  }, [showWarning, extendSession]);
+
   // Handle session timeout
   const handleTimeout = useCallback(async () => {
     setShowWarning(false);
@@ -57,6 +57,10 @@ export function SessionTimeoutHandler() {
   // Check for inactivity
   useEffect(() => {
     if (!user) return;
+
+    // Capture ref values for cleanup
+    const warningTimeout = warningTimeoutRef;
+    const logoutTimeout = logoutTimeoutRef;
 
     const checkInactivity = () => {
       const now = Date.now();
@@ -72,7 +76,7 @@ export function SessionTimeoutHandler() {
         setTimeRemaining(Math.ceil(timeUntilTimeout / 1000));
         
         // Set logout timeout
-        logoutTimeoutRef.current = setTimeout(() => {
+        logoutTimeout.current = setTimeout(() => {
           handleTimeout();
         }, timeUntilTimeout);
       }
@@ -104,8 +108,8 @@ export function SessionTimeoutHandler() {
 
     return () => {
       clearInterval(intervalId);
-      if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current);
-      if (logoutTimeoutRef.current) clearTimeout(logoutTimeoutRef.current);
+      if (warningTimeout.current) clearTimeout(warningTimeout.current);
+      if (logoutTimeout.current) clearTimeout(logoutTimeout.current);
       if (throttleTimeout) clearTimeout(throttleTimeout);
       events.forEach((event) => {
         window.removeEventListener(event, throttledUpdateActivity);
