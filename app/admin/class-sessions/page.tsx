@@ -63,19 +63,11 @@ export default function ClassSessionsPage() {
     
     const filteredSessions = classSessions.filter((s: any) => s.sectionId === selectedSection);
     
-    // #region agent log
-    console.log('[DEBUG weekSessions]', {selectedSection,totalSessions:classSessions?.length,filteredCount:filteredSessions.length,sampleSession:filteredSessions[0]});
-    // #endregion
-    
     // Group sessions by dayOfWeek (recurring pattern) instead of specific dates
     filteredSessions.forEach((session: any) => {
         // Use dayOfWeek if available, otherwise calculate from date
         const dayIndex = session.dayOfWeek !== undefined ? session.dayOfWeek : new Date(session.date).getDay();
         const periodKey = session.periodId || session.time;
-        
-        // #region agent log
-        console.log('[DEBUG sessionMapping]', {sessionDate:session.date,dayOfWeek:session.dayOfWeek,dayIndex,periodId:session.periodId,periodKey,curriculum:session.curriculumName});
-        // #endregion
         
         if (!sessionsMap[periodKey]) {
           sessionsMap[periodKey] = {};
@@ -94,10 +86,6 @@ export default function ClassSessionsPage() {
         }
       });
     
-    // #region agent log
-    console.log('[DEBUG weekSessionsResult]', {mapKeys:Object.keys(sessionsMap)});
-    // #endregion
-    
     return sessionsMap;
   }, [classSessions, selectedSection]);
 
@@ -107,10 +95,6 @@ export default function ClassSessionsPage() {
     const sorted = periods
       .filter((p: any) => !p.isBreak)
       .sort((a: any, b: any) => a.order - b.order);
-    
-    // #region agent log
-    console.log('[DEBUG sortedPeriods]', {periodIds:sorted.map((p:any)=>p._id),periodNames:sorted.map((p:any)=>p.name)});
-    // #endregion
     
     return sorted;
   }, [periods]);
@@ -262,10 +246,6 @@ export default function ClassSessionsPage() {
                       </td>
                       {DAY_NAMES.map((_, dayIdx) => {
                         const sessions = weekSessions[period._id]?.[dayIdx] || [];
-                        
-                        // #region agent log
-                        if (dayIdx === 0) console.log('[DEBUG cellRender]', {periodId:period._id,periodName:period.name,foundSessions:sessions.length,weekSessionsKeys:Object.keys(weekSessions)});
-                        // #endregion
                         
                         return (
                           <td 
