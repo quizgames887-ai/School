@@ -87,9 +87,13 @@ export default function ClassSessionsPage() {
     
     const sessionsMap: Record<string, Record<string, any[]>> = {}; // periodId -> dayIndex -> sessions
     
-    classSessions
-      .filter((s: any) => s.sectionId === selectedSection)
-      .forEach((session: any) => {
+    const filteredSessions = classSessions.filter((s: any) => s.sectionId === selectedSection);
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'class-sessions/page.tsx:weekSessions',message:'Filtering sessions for section',data:{selectedSection,totalSessions:classSessions?.length,filteredCount:filteredSessions.length,sampleSession:filteredSessions[0]},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C,D'})}).catch(()=>{});
+    // #endregion
+    
+    filteredSessions.forEach((session: any) => {
         const sessionDate = new Date(session.date);
         const dayIndex = sessionDate.getDay();
         
@@ -98,7 +102,13 @@ export default function ClassSessionsPage() {
         const weekEnd = new Date(currentWeekStart);
         weekEnd.setDate(weekEnd.getDate() + 6);
         
-        if (sessionDate >= weekStart && sessionDate <= weekEnd) {
+        const isInWeek = sessionDate >= weekStart && sessionDate <= weekEnd;
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'class-sessions/page.tsx:weekCheck',message:'Session week check',data:{sessionDate:session.date,dayIndex,weekStartStr:formatDateISO(weekStart),weekEndStr:formatDateISO(weekEnd),isInWeek,periodId:session.periodId,time:session.time},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
+        
+        if (isInWeek) {
           const periodKey = session.periodId || session.time;
           if (!sessionsMap[periodKey]) {
             sessionsMap[periodKey] = {};
@@ -110,15 +120,25 @@ export default function ClassSessionsPage() {
         }
       });
     
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'class-sessions/page.tsx:weekSessionsResult',message:'WeekSessions map keys',data:{mapKeys:Object.keys(sessionsMap),currentWeekStart:formatDateISO(currentWeekStart)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    
     return sessionsMap;
   }, [classSessions, selectedSection, currentWeekStart]);
 
   // Get sorted periods (non-break only)
   const sortedPeriods = useMemo(() => {
     if (!periods) return [];
-    return periods
+    const sorted = periods
       .filter((p: any) => !p.isBreak)
       .sort((a: any, b: any) => a.order - b.order);
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'class-sessions/page.tsx:sortedPeriods',message:'Sorted periods for timetable',data:{periodIds:sorted.map((p:any)=>p._id),periodNames:sorted.map((p:any)=>p.name)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    
+    return sorted;
   }, [periods]);
 
   const handleDelete = async (sessionId: string) => {
@@ -289,6 +309,10 @@ export default function ClassSessionsPage() {
                       </td>
                       {DAY_NAMES.map((_, dayIdx) => {
                         const sessions = weekSessions[period._id]?.[dayIdx] || [];
+                        
+                        // #region agent log
+                        if (dayIdx === 0) fetch('http://127.0.0.1:7244/ingest/42a76cd6-c3b4-41d8-a6da-d645a23f4e18',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'class-sessions/page.tsx:cellRender',message:'Looking up sessions for period',data:{periodId:period._id,periodName:period.name,dayIdx,foundSessions:sessions.length,weekSessionsKeys:Object.keys(weekSessions)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+                        // #endregion
                         
                         return (
                           <td 
