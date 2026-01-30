@@ -8,6 +8,11 @@ import { SessionTimeoutHandler } from "@/components/SessionTimeoutHandler";
 export const metadata: Metadata = {
   title: "Alahed International Schools - Schedule Management",
   description: "Manage school lecture schedules with teachers and classes for Alahed International Schools",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
