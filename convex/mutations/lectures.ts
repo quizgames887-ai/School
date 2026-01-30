@@ -151,21 +151,32 @@ export const create = mutation({
     if (args.recurring && args.sectionId) {
       // Get the lesson to find the curriculum (subject)
       const lesson = await ctx.db.get(args.lessonId);
+      console.log("[AUTO-SYNC] Lesson found:", lesson ? "yes" : "no");
+      
       if (lesson) {
         const unit = await ctx.db.get(lesson.unitId);
+        console.log("[AUTO-SYNC] Unit found:", unit ? "yes" : "no");
+        
         if (unit) {
           const curriculumId = unit.subjectId;
+          console.log("[AUTO-SYNC] CurriculumId:", curriculumId);
           
           // Create class sessions for the next 4 weeks
           const today = new Date();
           const currentDay = today.getDay();
           
+          console.log("[AUTO-SYNC] Today:", today.toISOString(), "currentDay:", currentDay, "targetDay:", args.dayOfWeek);
+          
           // Find the next occurrence of this day of week
           let daysUntilNext = (args.dayOfWeek - currentDay + 7) % 7;
-          if (daysUntilNext === 0 && today.getHours() >= 12) {
-            // If today is the day but it's past noon, start from next week
-            daysUntilNext = 7;
+          // If today is the target day, include it (don't skip to next week)
+          if (daysUntilNext === 0) {
+            daysUntilNext = 0; // Include today
           }
+          
+          console.log("[AUTO-SYNC] daysUntilNext:", daysUntilNext);
+          
+          let sessionsCreated = 0;
           
           // Create sessions for next 4 occurrences
           for (let week = 0; week < 4; week++) {
@@ -173,6 +184,8 @@ export const create = mutation({
             sessionDate.setDate(today.getDate() + daysUntilNext + (week * 7));
             
             const dateStr = sessionDate.toISOString().split('T')[0];
+            
+            console.log("[AUTO-SYNC] Week", week, "dateStr:", dateStr);
             
             // Check if session already exists
             const existingSessions = await ctx.db
@@ -183,6 +196,8 @@ export const create = mutation({
             const exists = existingSessions.some(
               (s) => s.sectionId === args.sectionId && s.date === dateStr && s.time === finalStartTime
             );
+            
+            console.log("[AUTO-SYNC] Session exists for", dateStr, ":", exists);
             
             if (!exists) {
               await ctx.db.insert("classSessions", {
@@ -197,10 +212,16 @@ export const create = mutation({
                 recurring: true,
                 dayOfWeek: args.dayOfWeek,
               });
+              sessionsCreated++;
+              console.log("[AUTO-SYNC] Created session for", dateStr);
             }
           }
+          
+          console.log("[AUTO-SYNC] Total sessions created:", sessionsCreated);
         }
       }
+    } else {
+      console.log("[AUTO-SYNC] Skipped - recurring:", args.recurring, "sectionId:", args.sectionId);
     }
     
     return lectureId;

@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner, Skeleton } from "@/components/ui/loading";
-import { Calendar, Plus, Edit2, Trash2, Clock, Filter, RefreshCw, Zap, ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { Calendar, Plus, Trash2, RefreshCw, Zap, Users } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 
 // Day names for the weekly view
@@ -25,14 +25,6 @@ export default function ClassSessionsPage() {
   const [showSyncForm, setShowSyncForm] = useState(false);
   const [editingSession, setEditingSession] = useState<string | null>(null);
   const [selectedSection, setSelectedSection] = useState<string>("");
-  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const start = new Date(today);
-    start.setDate(today.getDate() - dayOfWeek);
-    start.setHours(0, 0, 0, 0);
-    return start;
-  });
 
   // Count recurring lectures for the sync indicator
   const recurringLecturesCount = useMemo(() => {
@@ -62,26 +54,8 @@ export default function ClassSessionsPage() {
     return grouped;
   }, [sections]);
 
-  // Get week dates
-  const weekDates = useMemo(() => {
-    const dates: Date[] = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(currentWeekStart);
-      date.setDate(currentWeekStart.getDate() + i);
-      dates.push(date);
-    }
-    return dates;
-  }, [currentWeekStart]);
 
-  // Format date as ISO string (YYYY-MM-DD)
-  const formatDateISO = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  // Get sessions for the selected section and current week
+  // Get sessions for the selected section - group by dayOfWeek and periodId
   const weekSessions = useMemo(() => {
     if (!classSessions || !selectedSection) return {};
     
@@ -93,39 +67,39 @@ export default function ClassSessionsPage() {
     console.log('[DEBUG weekSessions]', {selectedSection,totalSessions:classSessions?.length,filteredCount:filteredSessions.length,sampleSession:filteredSessions[0]});
     // #endregion
     
+    // Group sessions by dayOfWeek (recurring pattern) instead of specific dates
     filteredSessions.forEach((session: any) => {
-        const sessionDate = new Date(session.date);
-        const dayIndex = sessionDate.getDay();
-        
-        // Check if session is in current week
-        const weekStart = new Date(currentWeekStart);
-        const weekEnd = new Date(currentWeekStart);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-        
-        const isInWeek = sessionDate >= weekStart && sessionDate <= weekEnd;
+        // Use dayOfWeek if available, otherwise calculate from date
+        const dayIndex = session.dayOfWeek !== undefined ? session.dayOfWeek : new Date(session.date).getDay();
+        const periodKey = session.periodId || session.time;
         
         // #region agent log
-        console.log('[DEBUG weekCheck]', {sessionDate:session.date,dayIndex,weekStart:formatDateISO(weekStart),weekEnd:formatDateISO(weekEnd),isInWeek,periodId:session.periodId,time:session.time});
+        console.log('[DEBUG sessionMapping]', {sessionDate:session.date,dayOfWeek:session.dayOfWeek,dayIndex,periodId:session.periodId,periodKey,curriculum:session.curriculumName});
         // #endregion
         
-        if (isInWeek) {
-          const periodKey = session.periodId || session.time;
-          if (!sessionsMap[periodKey]) {
-            sessionsMap[periodKey] = {};
-          }
-          if (!sessionsMap[periodKey][dayIndex]) {
-            sessionsMap[periodKey][dayIndex] = [];
-          }
+        if (!sessionsMap[periodKey]) {
+          sessionsMap[periodKey] = {};
+        }
+        if (!sessionsMap[periodKey][dayIndex]) {
+          sessionsMap[periodKey][dayIndex] = [];
+        }
+        
+        // Only add if not already present (avoid duplicates from multiple weeks)
+        const alreadyExists = sessionsMap[periodKey][dayIndex].some(
+          (s: any) => s.curriculumId === session.curriculumId && s.teacherId === session.teacherId
+        );
+        
+        if (!alreadyExists) {
           sessionsMap[periodKey][dayIndex].push(session);
         }
       });
     
     // #region agent log
-    console.log('[DEBUG weekSessionsResult]', {mapKeys:Object.keys(sessionsMap),currentWeekStart:formatDateISO(currentWeekStart)});
+    console.log('[DEBUG weekSessionsResult]', {mapKeys:Object.keys(sessionsMap)});
     // #endregion
     
     return sessionsMap;
-  }, [classSessions, selectedSection, currentWeekStart]);
+  }, [classSessions, selectedSection]);
 
   // Get sorted periods (non-break only)
   const sortedPeriods = useMemo(() => {
@@ -149,27 +123,6 @@ export default function ClassSessionsPage() {
     } catch (error: any) {
       toast(`Error: ${error.message || error}`, "error");
     }
-  };
-
-  const goToPreviousWeek = () => {
-    const newStart = new Date(currentWeekStart);
-    newStart.setDate(newStart.getDate() - 7);
-    setCurrentWeekStart(newStart);
-  };
-
-  const goToNextWeek = () => {
-    const newStart = new Date(currentWeekStart);
-    newStart.setDate(newStart.getDate() + 7);
-    setCurrentWeekStart(newStart);
-  };
-
-  const goToCurrentWeek = () => {
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const start = new Date(today);
-    start.setDate(today.getDate() - dayOfWeek);
-    start.setHours(0, 0, 0, 0);
-    setCurrentWeekStart(start);
   };
 
   // Get selected section details
