@@ -133,7 +133,7 @@ export const create = mutation({
       }
     }
     
-    return await ctx.db.insert("lectures", {
+    const lectureId = await ctx.db.insert("lectures", {
       teacherId: args.teacherId,
       sectionId: args.sectionId, // New lectures always use sectionId
       lessonId: args.lessonId,
@@ -146,6 +146,64 @@ export const create = mutation({
       periodId: args.periodId,
       // classId is not set for new lectures - only sectionId
     });
+    
+    // Auto-create class sessions for recurring lectures
+    if (args.recurring && args.sectionId) {
+      // Get the lesson to find the curriculum (subject)
+      const lesson = await ctx.db.get(args.lessonId);
+      if (lesson) {
+        const unit = await ctx.db.get(lesson.unitId);
+        if (unit) {
+          const curriculumId = unit.subjectId;
+          
+          // Create class sessions for the next 4 weeks
+          const today = new Date();
+          const currentDay = today.getDay();
+          
+          // Find the next occurrence of this day of week
+          let daysUntilNext = (args.dayOfWeek - currentDay + 7) % 7;
+          if (daysUntilNext === 0 && today.getHours() >= 12) {
+            // If today is the day but it's past noon, start from next week
+            daysUntilNext = 7;
+          }
+          
+          // Create sessions for next 4 occurrences
+          for (let week = 0; week < 4; week++) {
+            const sessionDate = new Date(today);
+            sessionDate.setDate(today.getDate() + daysUntilNext + (week * 7));
+            
+            const dateStr = sessionDate.toISOString().split('T')[0];
+            
+            // Check if session already exists
+            const existingSessions = await ctx.db
+              .query("classSessions")
+              .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId))
+              .collect();
+            
+            const exists = existingSessions.some(
+              (s) => s.sectionId === args.sectionId && s.date === dateStr && s.time === finalStartTime
+            );
+            
+            if (!exists) {
+              await ctx.db.insert("classSessions", {
+                sectionId: args.sectionId,
+                curriculumId: curriculumId,
+                teacherId: args.teacherId,
+                date: dateStr,
+                time: finalStartTime,
+                endTime: finalEndTime,
+                academicYear: args.academicYear,
+                periodId: args.periodId,
+                recurring: true,
+                dayOfWeek: args.dayOfWeek,
+              });
+            }
+          }
+        }
+      }
+    }
+    
+    return lectureId;
   },
 });
 
@@ -285,6 +343,33 @@ export const update = mutation({
 export const deleteLecture = mutation({
   args: { id: v.id("lectures") },
   handler: async (ctx, args) => {
+    // Get the lecture details before deleting
+    const lecture = await ctx.db.get(args.id);
+    
+    if (lecture && lecture.recurring && lecture.sectionId) {
+      // Delete associated class sessions (future ones only)
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      
+      const sessions = await ctx.db
+        .query("classSessions")
+        .withIndex("by_teacher", (q) => q.eq("teacherId", lecture.teacherId))
+        .collect();
+      
+      // Delete future sessions that match this lecture
+      for (const session of sessions) {
+        if (
+          session.sectionId === lecture.sectionId &&
+          session.dayOfWeek === lecture.dayOfWeek &&
+          session.time === lecture.startTime &&
+          session.date >= todayStr &&
+          session.recurring
+        ) {
+          await ctx.db.delete(session._id);
+        }
+      }
+    }
+    
     await ctx.db.delete(args.id);
     return args.id;
   },
