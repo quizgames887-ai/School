@@ -3,6 +3,7 @@ import "./globals.css";
 import { ConvexClientProvider } from "@/lib/convex-provider";
 import { AuthProvider } from "@/lib/auth-context";
 import { ToastContainer } from "@/components/ui/toast";
+import { SessionTimeoutHandler } from "@/components/SessionTimeoutHandler";
 
 export const metadata: Metadata = {
   title: "Alahed International Schools - Schedule Management",
@@ -20,6 +21,7 @@ export default function RootLayout({
         <ConvexClientProvider>
           <AuthProvider>
             {children}
+            <SessionTimeoutHandler />
             <ToastContainer />
           </AuthProvider>
         </ConvexClientProvider>

@@ -3,17 +3,22 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
+import { Clock } from "lucide-react";
 
 export default function LoginPage() {
   const { user, login, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [logoError, setLogoError] = useState(false);
+  
+  // Check if redirected due to session expiry
+  const sessionExpired = searchParams.get("expired") === "true";
 
   useEffect(() => {
     if (user) {
@@ -77,6 +82,17 @@ export default function LoginPage() {
           </h3>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {sessionExpired && (
+            <div className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4 shadow-sm animate-fadeIn">
+              <div className="flex items-center gap-3">
+                <Clock className="h-5 w-5 text-amber-600 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">Session Expired</p>
+                  <p className="text-xs text-amber-600 mt-0.5">Your session has expired due to inactivity. Please sign in again.</p>
+                </div>
+              </div>
+            </div>
+          )}
           {error && (
             <div className="rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-red-100/50 p-4 shadow-sm animate-fadeIn">
               <p className="text-sm font-semibold text-red-800">{error}</p>
