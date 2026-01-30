@@ -211,7 +211,7 @@ export default function ClassSessionsPage() {
                 <optgroup key={grade} label={grade}>
                   {sectionsByGrade[grade].map((section: any) => (
                     <option key={section._id} value={section._id}>
-                      {section.name} ({section.numberOfStudents} students)
+                      {section.grade} - {section.name} ({section.numberOfStudents} students)
                     </option>
                   ))}
                 </optgroup>
