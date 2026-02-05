@@ -73,8 +73,13 @@ export async function exportDutyRosterToPDF(
   configWorkingDays: number[],
   filename = "duty-roster.pdf"
 ): Promise<void> {
-  const { jsPDF } = await import("jspdf");
-  const { autoTable } = await import("jspdf-autotable");
+  const jspdfMod = await import("jspdf");
+  const jsPDF =
+    (jspdfMod as { default?: unknown }).default ??
+    (jspdfMod as { jsPDF?: unknown }).jsPDF;
+  if (typeof jsPDF !== "function") {
+    throw new Error("jsPDF could not be loaded. Try refreshing the page.");
+  }
   const rows = buildRosterRows(
     weekDates,
     dutyTypes,
@@ -82,24 +87,54 @@ export async function exportDutyRosterToPDF(
     teacherById,
     configWorkingDays
   );
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-  doc.setFontSize(14);
-  doc.text("Duty Roster", 14, 12);
-  doc.setFontSize(10);
-  const headers = ["Date", "Day", ...dutyTypes.map((dt) => dt.name)];
-  const body = rows.map((r) => [r.date, r.dayName, ...r.cells]);
-  autoTable(doc, {
-    head: [headers],
-    body,
-    startY: 18,
-    styles: { fontSize: 8 },
-    columnStyles: {
-      0: { cellWidth: 22 },
-      1: { cellWidth: 12 },
-      ...Object.fromEntries(
-        dutyTypes.map((_, i) => [i + 2, { cellWidth: 35 }])
-      ),
-    },
+  const DocClass = jsPDF as new (opts?: Record<string, string>) => {
+    setFontSize: (n: number) => void;
+    text: (t: string, x: number, y: number, opts?: { maxWidth?: number }) => void;
+    save: (name: string) => void;
+    getTextWidth: (t: string) => number;
+  };
+  const doc = new DocClass({
+    orientation: "landscape",
+    unit: "mm",
+    format: "a4",
   });
+  const pageW = 297;
+  const pageH = 210;
+  const margin = 10;
+  const fontSize = 8;
+  const rowHeight = 6;
+  const colWidth = Math.max(20, (pageW - 2 * margin - 22 - 12) / Math.max(1, dutyTypes.length));
+
+  doc.setFontSize(14);
+  doc.text("Duty Roster", margin, 12);
+  doc.setFontSize(fontSize);
+
+  const headers = ["Date", "Day", ...dutyTypes.map((dt) => dt.name)];
+  let y = 18;
+  let x = margin;
+  headers.forEach((h, i) => {
+    const w = i === 0 ? 22 : i === 1 ? 12 : colWidth;
+    const text = String(h).slice(0, 15);
+    doc.text(text, x, y);
+    x += w;
+  });
+  y += rowHeight;
+
+  for (const r of rows) {
+    x = margin;
+    const rowCells = [r.date, r.dayName, ...r.cells];
+    rowCells.forEach((cell, i) => {
+      const w = i === 0 ? 22 : i === 1 ? 12 : colWidth;
+      const text = String(cell).slice(0, 18);
+      if (y > pageH - 15) {
+        (doc as { addPage?: (format?: string, orientation?: string) => void }).addPage?.("a4", "landscape");
+        y = 15;
+      }
+      doc.text(text, x, y, { maxWidth: w - 2 });
+      x += w;
+    });
+    y += rowHeight;
+  }
+
   doc.save(filename);
 }
