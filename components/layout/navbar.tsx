@@ -17,6 +17,7 @@ import {
   Languages,
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ export function Navbar() {
     { href: "/admin/curriculum", label: t("nav.curriculum", "Curriculum"), icon: BookOpen },
     { href: "/admin/periods", label: t("nav.periods", "Periods"), icon: Clock },
     { href: "/admin/schedule", label: t("nav.schedule", "Schedule"), icon: Calendar },
+    { href: "/admin/duty-roster", label: t("nav.dutyRoster", "Duty Roster"), icon: ClipboardList },
     { href: "/admin/translations", label: t("nav.translations", "Translations"), icon: Languages },
   ];
 

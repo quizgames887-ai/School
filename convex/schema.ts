@@ -129,4 +129,50 @@ export default defineSchema({
     value: v.string(),
   })
     .index("by_key", ["key"]),
+
+  // Duty roster: school-level config per academic year
+  dutyConfig: defineTable({
+    academicYear: v.string(),
+    workingDays: v.array(v.number()), // 0-6 (Sunday-Saturday)
+    weekStartDate: v.optional(v.string()), // ISO date for roster week reference
+  })
+    .index("by_academic_year", ["academicYear"]),
+
+  // Duty type definitions (e.g. Gate, Recess)
+  dutyTypes: defineTable({
+    name: v.string(),
+    requiredTeachers: v.number(),
+    timeSlot: v.optional(v.string()),
+    periodId: v.optional(v.id("periods")),
+    academicYear: v.string(),
+    order: v.number(),
+  })
+    .index("by_academic_year", ["academicYear", "order"]),
+
+  // Per-teacher duty constraints
+  teacherDutyProfiles: defineTable({
+    teacherId: v.id("teachers"),
+    academicYear: v.string(),
+    teachingLoadOverride: v.optional(v.number()),
+    availableDays: v.array(v.number()), // 0-6; empty = all working days
+    maxDutiesPerWeek: v.number(),
+    maxDutiesPerDay: v.number(),
+    excludeDays: v.optional(v.array(v.number())),
+    excludeDutyTypeIds: v.optional(v.array(v.id("dutyTypes"))),
+  })
+    .index("by_academic_year", ["academicYear"])
+    .index("by_teacher", ["teacherId", "academicYear"]),
+
+  // Generated duty assignments
+  dutyAssignments: defineTable({
+    teacherId: v.id("teachers"),
+    dutyTypeId: v.id("dutyTypes"),
+    date: v.string(), // YYYY-MM-DD
+    academicYear: v.string(),
+    slotLabel: v.optional(v.string()),
+  })
+    .index("by_date", ["date"])
+    .index("by_teacher", ["teacherId", "date"])
+    .index("by_duty_type", ["dutyTypeId", "date"])
+    .index("by_academic_year", ["academicYear"]),
 });

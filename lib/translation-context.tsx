@@ -61,7 +61,9 @@ export const STATIC_TRANSLATIONS: Record<string, { en: string; ar: string }> = {
   "nav.curriculum": { en: "Curriculum", ar: "المنهج" },
   "nav.periods": { en: "Periods", ar: "الفترات" },
   "nav.schedule": { en: "Schedule", ar: "الجدول" },
+  "nav.dutyRoster": { en: "Duty Roster", ar: "جدول المناوبات" },
   "nav.translations": { en: "Translations", ar: "الترجمات" },
+  "nav.profile": { en: "My Profile", ar: "ملفي" },
   "nav.mySchedule": { en: "My Schedule", ar: "جدولي" },
   "nav.signOut": { en: "Sign Out", ar: "تسجيل الخروج" },
   

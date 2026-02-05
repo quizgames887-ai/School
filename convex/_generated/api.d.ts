@@ -8,15 +8,20 @@
  * @module
  */
 
+import type * as actions_generateDutyRoster from "../actions/generateDutyRoster.js";
 import type * as actions_validateSchedule from "../actions/validateSchedule.js";
 import type * as mutations_classSessions from "../mutations/classSessions.js";
 import type * as mutations_classes from "../mutations/classes.js";
+import type * as mutations_dutyAssignments from "../mutations/dutyAssignments.js";
+import type * as mutations_dutyConfig from "../mutations/dutyConfig.js";
+import type * as mutations_dutyTypes from "../mutations/dutyTypes.js";
 import type * as mutations_lectures from "../mutations/lectures.js";
 import type * as mutations_lessons from "../mutations/lessons.js";
 import type * as mutations_periods from "../mutations/periods.js";
 import type * as mutations_sections from "../mutations/sections.js";
 import type * as mutations_seed from "../mutations/seed.js";
 import type * as mutations_subjects from "../mutations/subjects.js";
+import type * as mutations_teacherDutyProfiles from "../mutations/teacherDutyProfiles.js";
 import type * as mutations_teachers from "../mutations/teachers.js";
 import type * as mutations_translations from "../mutations/translations.js";
 import type * as mutations_units from "../mutations/units.js";
@@ -25,12 +30,17 @@ import type * as queries_classSessions from "../queries/classSessions.js";
 import type * as queries_classes from "../queries/classes.js";
 import type * as queries_conflicts from "../queries/conflicts.js";
 import type * as queries_curriculum from "../queries/curriculum.js";
+import type * as queries_dutyAssignments from "../queries/dutyAssignments.js";
+import type * as queries_dutyConfig from "../queries/dutyConfig.js";
+import type * as queries_dutyTypes from "../queries/dutyTypes.js";
 import type * as queries_lectures from "../queries/lectures.js";
 import type * as queries_lessons from "../queries/lessons.js";
 import type * as queries_periods from "../queries/periods.js";
 import type * as queries_sections from "../queries/sections.js";
 import type * as queries_subjects from "../queries/subjects.js";
+import type * as queries_teacherDutyProfiles from "../queries/teacherDutyProfiles.js";
 import type * as queries_teachers from "../queries/teachers.js";
+import type * as queries_teachingLoad from "../queries/teachingLoad.js";
 import type * as queries_translations from "../queries/translations.js";
 import type * as queries_users from "../queries/users.js";
 
@@ -41,15 +51,20 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "actions/generateDutyRoster": typeof actions_generateDutyRoster;
   "actions/validateSchedule": typeof actions_validateSchedule;
   "mutations/classSessions": typeof mutations_classSessions;
   "mutations/classes": typeof mutations_classes;
+  "mutations/dutyAssignments": typeof mutations_dutyAssignments;
+  "mutations/dutyConfig": typeof mutations_dutyConfig;
+  "mutations/dutyTypes": typeof mutations_dutyTypes;
   "mutations/lectures": typeof mutations_lectures;
   "mutations/lessons": typeof mutations_lessons;
   "mutations/periods": typeof mutations_periods;
   "mutations/sections": typeof mutations_sections;
   "mutations/seed": typeof mutations_seed;
   "mutations/subjects": typeof mutations_subjects;
+  "mutations/teacherDutyProfiles": typeof mutations_teacherDutyProfiles;
   "mutations/teachers": typeof mutations_teachers;
   "mutations/translations": typeof mutations_translations;
   "mutations/units": typeof mutations_units;
@@ -58,12 +73,17 @@ declare const fullApi: ApiFromModules<{
   "queries/classes": typeof queries_classes;
   "queries/conflicts": typeof queries_conflicts;
   "queries/curriculum": typeof queries_curriculum;
+  "queries/dutyAssignments": typeof queries_dutyAssignments;
+  "queries/dutyConfig": typeof queries_dutyConfig;
+  "queries/dutyTypes": typeof queries_dutyTypes;
   "queries/lectures": typeof queries_lectures;
   "queries/lessons": typeof queries_lessons;
   "queries/periods": typeof queries_periods;
   "queries/sections": typeof queries_sections;
   "queries/subjects": typeof queries_subjects;
+  "queries/teacherDutyProfiles": typeof queries_teacherDutyProfiles;
   "queries/teachers": typeof queries_teachers;
+  "queries/teachingLoad": typeof queries_teachingLoad;
   "queries/translations": typeof queries_translations;
   "queries/users": typeof queries_users;
 }>;
