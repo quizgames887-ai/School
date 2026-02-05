@@ -15,6 +15,7 @@ import type * as mutations_lectures from "../mutations/lectures.js";
 import type * as mutations_lessons from "../mutations/lessons.js";
 import type * as mutations_periods from "../mutations/periods.js";
 import type * as mutations_sections from "../mutations/sections.js";
+import type * as mutations_seed from "../mutations/seed.js";
 import type * as mutations_subjects from "../mutations/subjects.js";
 import type * as mutations_teachers from "../mutations/teachers.js";
 import type * as mutations_translations from "../mutations/translations.js";
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   "mutations/lessons": typeof mutations_lessons;
   "mutations/periods": typeof mutations_periods;
   "mutations/sections": typeof mutations_sections;
+  "mutations/seed": typeof mutations_seed;
   "mutations/subjects": typeof mutations_subjects;
   "mutations/teachers": typeof mutations_teachers;
   "mutations/translations": typeof mutations_translations;

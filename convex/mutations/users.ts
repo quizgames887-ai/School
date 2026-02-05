@@ -9,9 +9,12 @@ export const create = mutation({
     role: v.union(v.literal("admin"), v.literal("teacher")),
   },
   handler: async (ctx, args) => {
+    // Normalize email to lowercase for consistent lookups
+    const normalizedEmail = args.email.trim().toLowerCase();
+    
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
       .first();
 
     if (existing) {
@@ -20,7 +23,7 @@ export const create = mutation({
 
     // Create user
     const userId = await ctx.db.insert("users", {
-      email: args.email,
+      email: normalizedEmail,
       name: args.name,
       passwordHash: args.passwordHash,
       role: args.role,
@@ -38,7 +41,7 @@ export const create = mutation({
         await ctx.db.insert("teachers", {
           userId: userId,
           name: args.name,
-          email: args.email,
+          email: normalizedEmail,
           subjects: [], // Empty subjects array, can be assigned later
         });
       }
@@ -65,8 +68,10 @@ export const update = mutation({
       throw new Error("User not found");
     }
     
-    // Check if email is being changed and if it already exists
+    // Normalize email if it's being updated
     if (updates.email) {
+      updates.email = updates.email.trim().toLowerCase();
+      
       const existing = await ctx.db
         .query("users")
         .withIndex("by_email", (q) => q.eq("email", updates.email!))
@@ -98,6 +103,35 @@ export const update = mutation({
     }
     
     return id;
+  },
+});
+
+// Migration mutation to normalize all existing user emails to lowercase
+export const normalizeEmails = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    let updated = 0;
+    
+    for (const user of users) {
+      const normalizedEmail = user.email.trim().toLowerCase();
+      if (user.email !== normalizedEmail) {
+        await ctx.db.patch(user._id, { email: normalizedEmail });
+        updated++;
+        
+        // Also update teacher profile email if it exists
+        const teacher = await ctx.db
+          .query("teachers")
+          .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+          .first();
+        
+        if (teacher && teacher.email !== normalizedEmail) {
+          await ctx.db.patch(teacher._id, { email: normalizedEmail });
+        }
+      }
+    }
+    
+    return { message: `Normalized ${updated} user emails to lowercase`, updated };
   },
 });
 

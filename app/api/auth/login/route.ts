@@ -106,10 +106,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find user by email
-    const user = await convexClient.query(api.queries.users.getByEmail, {
+    // Find user by email (normalized to lowercase)
+    let user = await convexClient.query(api.queries.users.getByEmail, {
       email,
     });
+
+    // If not found, try case-insensitive search for legacy users with mixed-case emails
+    if (!user) {
+      const allUsers = await convexClient.query(api.queries.users.getAll, {});
+      user = allUsers.find((u: any) => u.email.toLowerCase() === email) || null;
+      
+      // If found with different case, update the email to lowercase for future logins
+      if (user) {
+        try {
+          await convexClient.mutation(api.mutations.users.update, {
+            id: user._id,
+            email: email, // This will be normalized to lowercase by the mutation
+          });
+          console.log("[LOGIN] Normalized email case for user:", email);
+        } catch (e) {
+          console.error("[LOGIN] Failed to normalize email:", e);
+        }
+      }
+    }
 
     // Use constant-time comparison to prevent timing attacks
     // Even if user doesn't exist, we still do a password check
