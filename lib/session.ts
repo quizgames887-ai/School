@@ -108,6 +108,7 @@ export async function getSession() {
       email: user.email,
       name: user.name,
       role: user.role,
+      photoUrl: user.photoUrl || null,
     };
   } catch (error) {
     console.error("Error fetching user session:", error);

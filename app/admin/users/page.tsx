@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner, Skeleton } from "@/components/ui/loading";
 import { toast } from "@/components/ui/toast";
-import { Users, Plus, Edit2, Trash2, Mail, UserCheck, UserX, Shield, GraduationCap, Filter } from "lucide-react";
+import { Users, Plus, Edit2, Trash2, Mail, UserCheck, UserX, Shield, GraduationCap, Filter, Camera, X } from "lucide-react";
+import Image from "next/image";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { hashPassword } from "@/lib/password";
 
@@ -289,14 +290,32 @@ export default function UsersPage() {
                         {filteredUsersByGrade[grade].map((user: any) => (
                         <tr key={user._id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              {user.role === "admin" ? (
-                                <Shield className="h-5 w-5 text-purple-500" />
+                            <div className="flex items-center gap-3">
+                              {user.photoUrl ? (
+                                <Image
+                                  src={user.photoUrl}
+                                  alt={user.name}
+                                  width={36}
+                                  height={36}
+                                  className="h-9 w-9 rounded-full object-cover ring-2 ring-gray-100"
+                                  unoptimized
+                                />
                               ) : (
-                                <Users className="h-5 w-5 text-blue-500" />
+                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-sm font-semibold text-white ring-2 ring-gray-100">
+                                  {(user.name || "U").charAt(0).toUpperCase()}
+                                </div>
                               )}
-                              <div className="text-sm font-medium text-gray-900">
-                                {user.name}
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  {user.role === "admin" ? (
+                                    <Shield className="h-4 w-4 text-purple-500" />
+                                  ) : (
+                                    <Users className="h-4 w-4 text-blue-500" />
+                                  )}
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {user.name}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -397,9 +416,15 @@ function UserForm({
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"admin" | "teacher">("teacher");
   const [isLoading, setIsLoading] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   
   const createUser = useMutation(api.mutations.users.create);
   const updateUser = useMutation(api.mutations.users.update);
+  const generateUploadUrl = useMutation(api.mutations.users.generatePhotoUploadUrl);
+  const updatePhoto = useMutation(api.mutations.users.updatePhoto);
+  const deletePhoto = useMutation(api.mutations.users.deletePhoto);
   const user = useQuery(
     api.queries.users.getById,
     userId ? { id: userId as Id<"users"> } : "skip"
@@ -410,13 +435,81 @@ function UserForm({
     setName(user.name);
     setEmail(user.email);
     setRole(user.role);
+    if (user.photoUrl && !photoPreview) {
+      setPhotoPreview(user.photoUrl);
+    }
   }
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        toast("Please select an image file", "error");
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast("Image must be less than 5MB", "error");
+        return;
+      }
+      setPhotoFile(file);
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    if (userId && user?.photoId) {
+      try {
+        await deletePhoto({ id: userId as Id<"users"> });
+        toast("Photo removed", "success");
+      } catch (error: any) {
+        toast(`Error: ${error.message || error}`, "error");
+        return;
+      }
+    }
+    setPhotoFile(null);
+    setPhotoPreview(null);
+  };
+
+  const uploadPhoto = async (targetUserId: string): Promise<void> => {
+    if (!photoFile) return;
+    
+    setIsUploadingPhoto(true);
+    try {
+      // Get upload URL
+      const uploadUrl = await generateUploadUrl();
+      
+      // Upload the file
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": photoFile.type },
+        body: photoFile,
+      });
+      
+      if (!result.ok) {
+        throw new Error("Failed to upload photo");
+      }
+      
+      const { storageId } = await result.json();
+      
+      // Update user with new photo
+      await updatePhoto({
+        id: targetUserId as Id<"users">,
+        photoId: storageId,
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
+      let targetUserId = userId;
+      
       if (userId) {
         const updates: any = { id: userId as Id<"users"> };
         if (name) updates.name = name;
@@ -427,6 +520,12 @@ function UserForm({
         }
         
         await updateUser(updates);
+        
+        // Upload photo if a new one was selected
+        if (photoFile) {
+          await uploadPhoto(userId);
+        }
+        
         toast("User updated successfully", "success");
       } else {
         if (!password) {
@@ -436,12 +535,18 @@ function UserForm({
         }
         
         const passwordHash = await hashPassword(password);
-        await createUser({
+        targetUserId = await createUser({
           name,
           email,
           passwordHash,
           role,
         });
+        
+        // Upload photo if one was selected
+        if (photoFile && targetUserId) {
+          await uploadPhoto(targetUserId);
+        }
+        
         toast("User created successfully", "success");
       }
       onSuccess();
@@ -460,6 +565,57 @@ function UserForm({
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Photo Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Profile Photo
+              </label>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  {photoPreview ? (
+                    <div className="relative">
+                      <Image
+                        src={photoPreview}
+                        alt="Preview"
+                        width={80}
+                        height={80}
+                        className="h-20 w-20 rounded-full object-cover ring-2 ring-gray-200"
+                        unoptimized
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow-md hover:bg-red-600 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 ring-2 ring-gray-200">
+                      <Camera className="h-8 w-8 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <label className="cursor-pointer">
+                    <span className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50">
+                      <Camera className="h-4 w-4" />
+                      {photoPreview ? "Change Photo" : "Upload Photo"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                  </label>
+                  <p className="mt-1 text-xs text-gray-500">
+                    JPG, PNG or GIF. Max 5MB.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
             <div>
               <label className="block text-sm font-medium text-gray-700">
                 Name <span className="text-red-500">*</span>
@@ -514,10 +670,12 @@ function UserForm({
               />
             </div>
             <div className="flex gap-2 pt-2">
-              <Button type="submit" className="flex-1" disabled={isLoading}>
-                {isLoading ? "Saving..." : userId ? "Update User" : "Create User"}
+              <Button type="submit" className="flex-1" disabled={isLoading || isUploadingPhoto}>
+                {isLoading || isUploadingPhoto 
+                  ? (isUploadingPhoto ? "Uploading photo..." : "Saving...") 
+                  : userId ? "Update User" : "Create User"}
               </Button>
-              <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+              <Button type="button" variant="outline" onClick={onClose} disabled={isLoading || isUploadingPhoto}>
                 Cancel
               </Button>
             </div>

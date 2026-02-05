@@ -58,6 +58,7 @@ export const update = mutation({
     name: v.optional(v.string()),
     role: v.optional(v.union(v.literal("admin"), v.literal("teacher"))),
     passwordHash: v.optional(v.string()),
+    photoId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
@@ -132,6 +133,58 @@ export const normalizeEmails = mutation({
     }
     
     return { message: `Normalized ${updated} user emails to lowercase`, updated };
+  },
+});
+
+// Generate upload URL for user photo
+export const generatePhotoUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+// Update user photo
+export const updatePhoto = mutation({
+  args: {
+    id: v.id("users"),
+    photoId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.id);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Delete old photo if exists
+    if (user.photoId) {
+      await ctx.storage.delete(user.photoId);
+    }
+
+    // Update user with new photo
+    await ctx.db.patch(args.id, { photoId: args.photoId });
+    
+    return args.id;
+  },
+});
+
+// Delete user photo
+export const deletePhoto = mutation({
+  args: {
+    id: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.id);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (user.photoId) {
+      await ctx.storage.delete(user.photoId);
+      await ctx.db.patch(args.id, { photoId: undefined });
+    }
+    
+    return args.id;
   },
 });
 

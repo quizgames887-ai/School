@@ -7,6 +7,7 @@ export default defineSchema({
     name: v.string(),
     role: v.union(v.literal("admin"), v.literal("teacher")),
     passwordHash: v.string(), // Hashed password
+    photoId: v.optional(v.id("_storage")), // User profile photo
   })
     .index("by_email", ["email"]),
 

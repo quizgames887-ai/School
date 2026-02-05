@@ -6,7 +6,7 @@ export const getAll = query({
   handler: async (ctx) => {
     const users = await ctx.db.query("users").collect();
     
-    // Enrich users with their teacher profiles
+    // Enrich users with their teacher profiles and photo URLs
     const usersWithTeachers = await Promise.all(
       users.map(async (user) => {
         const teacher = await ctx.db
@@ -14,8 +14,14 @@ export const getAll = query({
           .withIndex("by_user_id", (q) => q.eq("userId", user._id))
           .first();
         
+        // Get photo URL if photoId exists
+        const photoUrl = user.photoId 
+          ? await ctx.storage.getUrl(user.photoId) 
+          : null;
+        
         return {
           ...user,
+          photoUrl,
           teacherProfile: teacher || null,
         };
       })
@@ -28,10 +34,22 @@ export const getAll = query({
 export const getByEmail = query({
   args: { email: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const user = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .first();
+    
+    if (!user) return null;
+    
+    // Get photo URL if photoId exists
+    const photoUrl = user.photoId 
+      ? await ctx.storage.getUrl(user.photoId) 
+      : null;
+    
+    return {
+      ...user,
+      photoUrl,
+    };
   },
 });
 
@@ -46,8 +64,14 @@ export const getById = query({
       .withIndex("by_user_id", (q) => q.eq("userId", user._id))
       .first();
     
+    // Get photo URL if photoId exists
+    const photoUrl = user.photoId 
+      ? await ctx.storage.getUrl(user.photoId) 
+      : null;
+    
     return {
       ...user,
+      photoUrl,
       teacherProfile: teacher || null,
     };
   },
@@ -77,10 +101,16 @@ export const getAllWithGrades = query({
         
         let grades: string[] = [];
         
+        // Get photo URL if photoId exists
+        const photoUrl = user.photoId 
+          ? await ctx.storage.getUrl(user.photoId) 
+          : null;
+        
         // If user is admin, return with empty grades
         if (user.role === "admin") {
           return {
             ...user,
+            photoUrl,
             teacherProfile: teacher || null,
             grades: [],
           };
@@ -125,6 +155,7 @@ export const getAllWithGrades = query({
         
         return {
           ...user,
+          photoUrl,
           teacherProfile: teacher || null,
           grades,
         };

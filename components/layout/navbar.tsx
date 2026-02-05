@@ -123,15 +123,30 @@ export function Navbar() {
             })}
           </div>
           <div className="border-t border-gray-200 p-3">
-            <div className="flex items-center gap-3 px-3 py-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-sm font-semibold text-white">
-                {(user.name || user.email || "U").charAt(0).toUpperCase()}
-              </div>
+            <Link
+              href="/profile"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              {user.photoUrl ? (
+                <Image
+                  src={user.photoUrl}
+                  alt={user.name || "User"}
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 rounded-full object-cover"
+                  unoptimized
+                />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-sm font-semibold text-white">
+                  {(user.name || user.email || "U").charAt(0).toUpperCase()}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-gray-700 truncate">{user.name || user.email}</div>
                 <div className="text-xs text-gray-500 capitalize">{user.role}</div>
               </div>
-            </div>
+            </Link>
             <button
               onClick={handleLogout}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"
@@ -225,17 +240,32 @@ export function Navbar() {
 
         {/* User section */}
         <div className="border-t border-gray-200 p-2">
-          <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} px-2 py-2`}>
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-sm font-semibold text-white">
-              {(user.name || user.email || "U").charAt(0).toUpperCase()}
-            </div>
+          <Link
+            href="/profile"
+            className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} px-2 py-2 rounded-lg hover:bg-gray-100 transition-colors`}
+            title={collapsed ? t("nav.profile", "My Profile") : undefined}
+          >
+            {user.photoUrl ? (
+              <Image
+                src={user.photoUrl}
+                alt={user.name || "User"}
+                width={32}
+                height={32}
+                className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-sm font-semibold text-white">
+                {(user.name || user.email || "U").charAt(0).toUpperCase()}
+              </div>
+            )}
             {!collapsed && (
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-gray-700 truncate">{user.name || user.email}</div>
                 <div className="text-xs text-gray-500 capitalize">{user.role}</div>
               </div>
             )}
-          </div>
+          </Link>
           <Button
             variant="ghost"
             size="sm"
